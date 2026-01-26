@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>📰 News Reader - PWA</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    :root {
+      --bg: #fafafa;
+      --card-bg: #ffffff;
+      --text: #1a1a1a;
+      --text-secondary: #666;
+      --accent: #0066cc;
+      --border: #e0e0e0;
+    }
+    
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1a1a1a;
+        --card-bg: #2a2a2a;
+        --text: #f0f0f0;
+        --text-secondary: #999;
+        --accent: #4da6ff;
+        --border: #333;
+      }
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+    
+    header {
+      position: sticky;
+      top: 0;
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem;
+      z-index: 100;
+    }
+    
+    .header-content {
+      max-width: 800px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .logo {
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+    
+    .back-btn {
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
+    
+    nav {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 1rem;
+      display: flex;
+      gap: 0.5rem;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    nav button {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      white-space: nowrap;
+      color: var(--text);
+      transition: all 0.2s;
+    }
+    
+    nav button.active {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+    
+    nav button:hover {
+      border-color: var(--accent);
+    }
+    
+    main {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 0 1rem 2rem;
+    }
+    
+    .article-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      background: var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    
+    .article {
+      background: var(--card-bg);
+      padding: 1.25rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    
+    .article:hover {
+      background: var(--bg);
+    }
+    
+    .article-meta {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      margin-bottom: 0.5rem;
+    }
+    
+    .article-source {
+      font-weight: 600;
+      color: var(--accent);
+    }
+    
+    .article-title {
+      font-size: 1.1rem;
+      font-weight: 500;
+      line-height: 1.4;
+      margin-bottom: 0.5rem;
+    }
+    
+    .article-snippet {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    
+    /* Reader Modal */
+    .reader-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--bg);
+      z-index: 1000;
+      overflow-y: auto;
+    }
+    
+    .reader-modal.open {
+      display: block;
+    }
+    
+    .reader-header {
+      position: sticky;
+      top: 0;
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .reader-close {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: var(--text);
+    }
+    
+    .reader-actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+    
+    .reader-actions a, .reader-actions button {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    
+    .reader-content {
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 2rem 1rem;
+    }
+    
+    .reader-title {
+      font-size: 1.8rem;
+      font-weight: 700;
+      line-height: 1.3;
+      margin-bottom: 1rem;
+    }
+    
+    .reader-meta {
+      color: var(--text-secondary);
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .reader-body {
+      font-size: 1.1rem;
+      line-height: 1.8;
+    }
+    
+    .reader-body p {
+      margin-bottom: 1.5rem;
+    }
+    
+    .loading-text {
+      text-align: center;
+      padding: 3rem;
+      color: var(--text-secondary);
+    }
+    
+    .summary-section {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .summary-title {
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .summary-category {
+      margin-bottom: 1rem;
+    }
+    
+    .summary-category h4 {
+      color: var(--accent);
+      font-size: 0.9rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .summary-category ul {
+      list-style: none;
+      font-size: 0.9rem;
+    }
+    
+    .summary-category li {
+      padding: 0.3rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-content">
+      <div class="logo">📰 News Reader</div>
+      <a href="/" class="back-btn">← Switch UI</a>
+    </div>
+  </header>
+  
+  <nav id="categoryNav">
+    <button class="active" data-category="all">All</button>
+  </nav>
+  
+  <main>
+    <div class="summary-section" id="summarySection">
+      <div class="summary-title">☀️ Morning Summary</div>
+      <div id="summaryContent">Loading...</div>
+    </div>
+    
+    <div class="article-list" id="articleList">
+      <div class="loading-text">Loading articles...</div>
+    </div>
+  </main>
+  
+  <!-- Reader Modal -->
+  <div class="reader-modal" id="readerModal">
+    <div class="reader-header">
+      <button class="reader-close" onclick="closeReader()">✕</button>
+      <div class="reader-actions">
+        <a href="#" id="originalLink" target="_blank">Original</a>
+        <a href="#" id="archiveLink" target="_blank">Archive</a>
+      </div>
+    </div>
+    <div class="reader-content">
+      <h1 class="reader-title" id="readerTitle"></h1>
+      <div class="reader-meta" id="readerMeta"></div>
+      <div class="reader-body" id="readerBody">
+        <p class="loading-text">Loading article...</p>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    let articles = [];
+    let currentCategory = 'all';
+    
+    async function loadArticles() {
+      try {
+        const response = await fetch('/api/articles?limit=100');
+        const data = await response.json();
+        
+        if (data.success) {
+          articles = data.articles;
+          renderArticles();
+          buildCategoryNav();
+        }
+      } catch (error) {
+        document.getElementById('articleList').innerHTML = 
+          '<div class="loading-text">Error loading articles: ' + error.message + '</div>';
+      }
+    }
+    
+    async function loadSummary() {
+      try {
+        const response = await fetch('/api/summary');
+        const data = await response.json();
+        
+        if (data.success && data.summary) {
+          let html = '';
+          for (const [cat, info] of Object.entries(data.summary.categories)) {
+            html += '<div class="summary-category">';
+            html += '<h4>' + cat + ' (' + info.count + ')</h4>';
+            html += '<ul>';
+            info.topStories.forEach(story => {
+              html += '<li>' + story.title.substring(0, 80) + (story.title.length > 80 ? '...' : '') + '</li>';
+            });
+            html += '</ul></div>';
+          }
+          document.getElementById('summaryContent').innerHTML = html;
+        }
+      } catch (error) {
+        document.getElementById('summaryContent').innerHTML = 'Could not load summary';
+      }
+    }
+    
+    function buildCategoryNav() {
+      const categories = [...new Set(articles.map(a => a.category))];
+      const nav = document.getElementById('categoryNav');
+      
+      let html = '<button class="active" data-category="all">All</button>';
+      categories.forEach(cat => {
+        html += '<button data-category="' + cat + '">' + cat + '</button>';
+      });
+      
+      nav.innerHTML = html;
+      
+      nav.querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('click', () => {
+          nav.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          currentCategory = btn.dataset.category;
+          renderArticles();
+        });
+      });
+    }
+    
+    function renderArticles() {
+      const filtered = currentCategory === 'all' 
+        ? articles 
+        : articles.filter(a => a.category === currentCategory);
+      
+      const list = document.getElementById('articleList');
+      
+      list.innerHTML = filtered.map(article => `
+        <div class="article" onclick="openReader('${encodeURIComponent(article.link)}', '${encodeURIComponent(article.title)}', '${article.source}', '${article.icon}')">
+          <div class="article-meta">
+            <span class="article-source">${article.icon} ${article.source}</span>
+            <span>•</span>
+            <span>${formatTime(article.publishedAt)}</span>
+          </div>
+          <div class="article-title">${article.title}</div>
+          <div class="article-snippet">${article.contentSnippet || ''}</div>
+        </div>
+      `).join('');
+    }
+    
+    function formatTime(dateStr) {
+      const date = new Date(dateStr);
+      const now = new Date();
+      const diff = now - date;
+      
+      if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
+      if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
+      return date.toLocaleDateString();
+    }
+    
+    async function openReader(encodedUrl, encodedTitle, source, icon) {
+      const url = decodeURIComponent(encodedUrl);
+      const title = decodeURIComponent(encodedTitle);
+      
+      document.getElementById('readerModal').classList.add('open');
+      document.getElementById('readerTitle').textContent = title;
+      document.getElementById('readerMeta').textContent = icon + ' ' + source;
+      document.getElementById('readerBody').innerHTML = '<p class="loading-text">Loading article...</p>';
+      document.getElementById('originalLink').href = url;
+      document.getElementById('archiveLink').href = 'https://archive.today/newest/' + encodeURIComponent(url);
+      
+      document.body.style.overflow = 'hidden';
+      
+      try {
+        const response = await fetch('/api/article/read?url=' + encodeURIComponent(url));
+        const data = await response.json();
+        
+        if (data.success && data.content) {
+          // Format content into paragraphs
+          const paragraphs = data.content.split(/\n\n|\.\s{2,}/)
+            .filter(p => p.trim().length > 50)
+            .map(p => '<p>' + p.trim() + '</p>')
+            .join('');
+          
+          document.getElementById('readerBody').innerHTML = paragraphs || 
+            '<p>Could not extract article content. Try the Original or Archive links above.</p>';
+          
+          if (data.source === 'archive.today') {
+            document.getElementById('readerMeta').textContent += ' • via Archive';
+          }
+        } else {
+          document.getElementById('readerBody').innerHTML = 
+            '<p>Could not load article content. Try the Original or Archive links above.</p>';
+        }
+      } catch (error) {
+        document.getElementById('readerBody').innerHTML = 
+          '<p>Error loading article: ' + error.message + '</p>';
+      }
+    }
+    
+    function closeReader() {
+      document.getElementById('readerModal').classList.remove('open');
+      document.body.style.overflow = '';
+    }
+    
+    // Close reader on Escape
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeReader();
+    });
+    
+    // Initialize
+    loadArticles();
+    loadSummary();
+  </script>
+</body>
+</html>

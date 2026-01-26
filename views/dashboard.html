@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>📰 News Reader - Dashboard</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    :root {
+      --bg: #0d1117;
+      --bg-secondary: #161b22;
+      --border: #30363d;
+      --text: #c9d1d9;
+      --text-muted: #8b949e;
+      --accent: #58a6ff;
+      --accent-green: #3fb950;
+      --accent-red: #f85149;
+      --accent-yellow: #d29922;
+      --accent-purple: #a371f7;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Noto Sans, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    
+    /* Header */
+    header {
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      padding: 0.75rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    
+    .logo {
+      font-size: 1.25rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .header-actions {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+    }
+    
+    .search-box {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.4rem 0.75rem;
+      color: var(--text);
+      width: 300px;
+    }
+    
+    .search-box:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    
+    .header-btn {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.4rem 0.75rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    
+    .header-btn:hover {
+      background: var(--bg-secondary);
+      border-color: var(--text-muted);
+    }
+    
+    .header-btn.primary {
+      background: var(--accent-green);
+      border-color: var(--accent-green);
+      color: #000;
+    }
+    
+    /* Layout */
+    .layout {
+      display: grid;
+      grid-template-columns: 250px 1fr 300px;
+      min-height: calc(100vh - 49px);
+    }
+    
+    @media (max-width: 1200px) {
+      .layout {
+        grid-template-columns: 200px 1fr;
+      }
+      .sidebar-right {
+        display: none;
+      }
+    }
+    
+    @media (max-width: 768px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+      .sidebar-left {
+        display: none;
+      }
+    }
+    
+    /* Sidebars */
+    .sidebar-left, .sidebar-right {
+      background: var(--bg-secondary);
+      border-right: 1px solid var(--border);
+      padding: 1rem;
+      overflow-y: auto;
+    }
+    
+    .sidebar-right {
+      border-right: none;
+      border-left: 1px solid var(--border);
+    }
+    
+    .sidebar-section {
+      margin-bottom: 1.5rem;
+    }
+    
+    .sidebar-title {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+      letter-spacing: 0.5px;
+    }
+    
+    /* Source List */
+    .source-list {
+      list-style: none;
+    }
+    
+    .source-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 0.75rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      margin-bottom: 2px;
+    }
+    
+    .source-item:hover {
+      background: var(--bg);
+    }
+    
+    .source-item.active {
+      background: rgba(88, 166, 255, 0.15);
+      color: var(--accent);
+    }
+    
+    .source-count {
+      margin-left: auto;
+      background: var(--bg);
+      padding: 0.1rem 0.5rem;
+      border-radius: 10px;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+    
+    /* Main Content */
+    .main-content {
+      padding: 1.5rem;
+      overflow-y: auto;
+    }
+    
+    .content-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+    
+    .content-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+    
+    .view-toggle {
+      display: flex;
+      gap: 0.25rem;
+      background: var(--bg-secondary);
+      padding: 0.25rem;
+      border-radius: 6px;
+    }
+    
+    .view-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 0.4rem 0.75rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+    
+    .view-btn.active {
+      background: var(--bg);
+      color: var(--text);
+    }
+    
+    /* Article Grid */
+    .article-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 1rem;
+    }
+    
+    .article-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .article-card:hover {
+      border-color: var(--text-muted);
+      transform: translateY(-2px);
+    }
+    
+    .article-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+    
+    .article-source {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--accent);
+    }
+    
+    .article-time {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-left: auto;
+    }
+    
+    .article-title {
+      font-size: 1rem;
+      font-weight: 600;
+      line-height: 1.4;
+      margin-bottom: 0.5rem;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    
+    .article-snippet {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    
+    .article-tags {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+      flex-wrap: wrap;
+    }
+    
+    .article-tag {
+      background: var(--bg);
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+    }
+    
+    /* List View */
+    .article-list {
+      display: none;
+    }
+    
+    .article-list.active {
+      display: block;
+    }
+    
+    .article-grid.active {
+      display: grid;
+    }
+    
+    .list-row {
+      display: grid;
+      grid-template-columns: auto 1fr auto auto;
+      gap: 1rem;
+      align-items: center;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+    }
+    
+    .list-row:hover {
+      background: var(--bg-secondary);
+    }
+    
+    .list-icon {
+      font-size: 1.25rem;
+    }
+    
+    .list-title {
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+    
+    .list-source {
+      font-size: 0.8rem;
+      color: var(--accent);
+    }
+    
+    .list-time {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+    
+    /* Word Cloud */
+    .word-cloud {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      padding: 0.5rem;
+    }
+    
+    .cloud-word {
+      padding: 0.3rem 0.6rem;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .cloud-word:hover {
+      opacity: 0.8;
+      transform: scale(1.05);
+    }
+    
+    .cloud-word.size-1 { font-size: 0.7rem; background: var(--bg); color: var(--text-muted); }
+    .cloud-word.size-2 { font-size: 0.8rem; background: var(--bg); color: var(--text); }
+    .cloud-word.size-3 { font-size: 0.9rem; background: rgba(88, 166, 255, 0.2); color: var(--accent); }
+    .cloud-word.size-4 { font-size: 1rem; background: rgba(63, 185, 80, 0.2); color: var(--accent-green); }
+    .cloud-word.size-5 { font-size: 1.1rem; background: rgba(163, 113, 247, 0.2); color: var(--accent-purple); font-weight: 600; }
+    
+    /* Summary Panel */
+    .summary-panel {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+    
+    .summary-stat {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .summary-stat:last-child {
+      border-bottom: none;
+    }
+    
+    .stat-label {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+    
+    .stat-value {
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+    
+    /* Reader Modal */
+    .reader-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.8);
+      z-index: 200;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 2rem;
+      overflow-y: auto;
+    }
+    
+    .reader-overlay.open {
+      display: flex;
+    }
+    
+    .reader-modal {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      max-width: 800px;
+      width: 100%;
+    }
+    
+    .reader-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .reader-close {
+      background: none;
+      border: none;
+      color: var(--text);
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+    
+    .reader-actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+    
+    .reader-actions a {
+      background: var(--bg);
+      color: var(--text);
+      text-decoration: none;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      border: 1px solid var(--border);
+    }
+    
+    .reader-actions a:hover {
+      border-color: var(--accent);
+    }
+    
+    .reader-body {
+      padding: 2rem;
+    }
+    
+    .reader-title {
+      font-size: 1.75rem;
+      font-weight: 700;
+      line-height: 1.3;
+      margin-bottom: 1rem;
+    }
+    
+    .reader-meta {
+      color: var(--text-muted);
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .reader-content {
+      font-size: 1.05rem;
+      line-height: 1.8;
+    }
+    
+    .reader-content p {
+      margin-bottom: 1.25rem;
+    }
+    
+    /* Loading */
+    .loading {
+      text-align: center;
+      padding: 3rem;
+      color: var(--text-muted);
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">📰 News Dashboard</div>
+    <div class="header-actions">
+      <input type="text" class="search-box" placeholder="Search articles..." id="searchBox">
+      <button class="header-btn" onclick="refreshFeeds()">
+        🔄 Refresh
+      </button>
+      <a href="/" class="header-btn">← Switch UI</a>
+    </div>
+  </header>
+  
+  <div class="layout">
+    <!-- Left Sidebar: Sources -->
+    <aside class="sidebar-left">
+      <div class="sidebar-section">
+        <div class="sidebar-title">Categories</div>
+        <ul class="source-list" id="categoryList">
+          <li class="source-item active" data-filter="all">
+            📰 All Stories
+          </li>
+        </ul>
+      </div>
+      
+      <div class="sidebar-section">
+        <div class="sidebar-title">Sources</div>
+        <ul class="source-list" id="sourceList">
+          <li class="loading"><span class="spinner"></span></li>
+        </ul>
+      </div>
+    </aside>
+    
+    <!-- Main Content -->
+    <main class="main-content">
+      <div class="content-header">
+        <h1 class="content-title" id="contentTitle">All Stories</h1>
+        <div class="view-toggle">
+          <button class="view-btn active" onclick="setView('grid')">Grid</button>
+          <button class="view-btn" onclick="setView('list')">List</button>
+        </div>
+      </div>
+      
+      <div class="article-grid active" id="articleGrid">
+        <div class="loading"><span class="spinner"></span> Loading articles...</div>
+      </div>
+      
+      <div class="article-list" id="articleList"></div>
+    </main>
+    
+    <!-- Right Sidebar: Word Cloud & Summary -->
+    <aside class="sidebar-right">
+      <div class="sidebar-section">
+        <div class="sidebar-title">Quick Stats</div>
+        <div class="summary-panel" id="summaryPanel">
+          <div class="summary-stat">
+            <span class="stat-label">Total Articles</span>
+            <span class="stat-value" id="statTotal">-</span>
+          </div>
+          <div class="summary-stat">
+            <span class="stat-label">Sources Active</span>
+            <span class="stat-value" id="statSources">-</span>
+          </div>
+          <div class="summary-stat">
+            <span class="stat-label">Last Updated</span>
+            <span class="stat-value" id="statUpdated">-</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="sidebar-section">
+        <div class="sidebar-title">Trending Topics</div>
+        <div class="word-cloud" id="wordCloud">
+          <div class="loading"><span class="spinner"></span></div>
+        </div>
+      </div>
+    </aside>
+  </div>
+  
+  <!-- Reader Modal -->
+  <div class="reader-overlay" id="readerOverlay" onclick="closeReader(event)">
+    <div class="reader-modal" onclick="event.stopPropagation()">
+      <div class="reader-header">
+        <button class="reader-close" onclick="closeReader()">✕</button>
+        <div class="reader-actions">
+          <a href="#" id="originalLink" target="_blank">Open Original</a>
+          <a href="#" id="archiveLink" target="_blank">View Archive</a>
+        </div>
+      </div>
+      <div class="reader-body">
+        <h1 class="reader-title" id="readerTitle"></h1>
+        <div class="reader-meta" id="readerMeta"></div>
+        <div class="reader-content" id="readerContent">
+          <p class="loading"><span class="spinner"></span> Loading...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    let articles = [];
+    let sources = [];
+    let currentFilter = { type: 'all', value: null };
+    let currentView = 'grid';
+    
+    async function init() {
+      await Promise.all([
+        loadArticles(),
+        loadSources(),
+        loadWordCloud()
+      ]);
+    }
+    
+    async function loadArticles() {
+      try {
+        const response = await fetch('/api/articles?limit=200');
+        const data = await response.json();
+        
+        if (data.success) {
+          articles = data.articles;
+          document.getElementById('statTotal').textContent = data.total;
+          document.getElementById('statUpdated').textContent = 
+            new Date(data.lastFetch).toLocaleTimeString();
+          
+          buildCategoryList();
+          renderArticles();
+        }
+      } catch (error) {
+        document.getElementById('articleGrid').innerHTML = 
+          '<div class="loading">Error loading articles</div>';
+      }
+    }
+    
+    async function loadSources() {
+      try {
+        const response = await fetch('/api/sources');
+        const data = await response.json();
+        
+        if (data.success) {
+          sources = data.sources;
+          document.getElementById('statSources').textContent = sources.length;
+          buildSourceList();
+        }
+      } catch (error) {
+        console.error('Error loading sources:', error);
+      }
+    }
+    
+    async function loadWordCloud() {
+      try {
+        const response = await fetch('/api/wordcloud');
+        const data = await response.json();
+        
+        if (data.success && data.topics) {
+          renderWordCloud(data.topics);
+        }
+      } catch (error) {
+        document.getElementById('wordCloud').innerHTML = 'Could not load topics';
+      }
+    }
+    
+    function buildCategoryList() {
+      const categories = [...new Set(articles.map(a => a.category))];
+      const list = document.getElementById('categoryList');
+      
+      list.innerHTML = `
+        <li class="source-item active" data-filter="all" onclick="filterByCategory('all', this)">
+          📰 All Stories
+          <span class="source-count">${articles.length}</span>
+        </li>
+      `;
+      
+      const icons = {
+        'Entertainment': '🎬',
+        'Politics': '🏛️',
+        'Tech': '💻',
+        'General': '🌐'
+      };
+      
+      categories.forEach(cat => {
+        const count = articles.filter(a => a.category === cat).length;
+        list.innerHTML += `
+          <li class="source-item" data-filter="${cat}" onclick="filterByCategory('${cat}', this)">
+            ${icons[cat] || '📁'} ${cat}
+            <span class="source-count">${count}</span>
+          </li>
+        `;
+      });
+    }
+    
+    function buildSourceList() {
+      const list = document.getElementById('sourceList');
+      list.innerHTML = sources.map(s => {
+        const count = articles.filter(a => a.sourceKey === s.key).length;
+        return `
+          <li class="source-item" onclick="filterBySource('${s.key}', this)">
+            ${s.icon} ${s.name}
+            <span class="source-count">${count}</span>
+          </li>
+        `;
+      }).join('');
+    }
+    
+    function renderWordCloud(topics) {
+      const container = document.getElementById('wordCloud');
+      const maxCount = Math.max(...topics.map(t => t.count));
+      
+      container.innerHTML = topics.map(topic => {
+        const ratio = topic.count / maxCount;
+        let size = 1;
+        if (ratio > 0.8) size = 5;
+        else if (ratio > 0.6) size = 4;
+        else if (ratio > 0.4) size = 3;
+        else if (ratio > 0.2) size = 2;
+        
+        return `<span class="cloud-word size-${size}" onclick="searchFor('${topic.word}')">${topic.word}</span>`;
+      }).join('');
+    }
+    
+    function filterByCategory(category, element) {
+      document.querySelectorAll('#categoryList .source-item').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('#sourceList .source-item').forEach(el => el.classList.remove('active'));
+      element.classList.add('active');
+      
+      currentFilter = { type: category === 'all' ? 'all' : 'category', value: category };
+      document.getElementById('contentTitle').textContent = 
+        category === 'all' ? 'All Stories' : category;
+      renderArticles();
+    }
+    
+    function filterBySource(sourceKey, element) {
+      document.querySelectorAll('#categoryList .source-item').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('#sourceList .source-item').forEach(el => el.classList.remove('active'));
+      element.classList.add('active');
+      
+      currentFilter = { type: 'source', value: sourceKey };
+      const source = sources.find(s => s.key === sourceKey);
+      document.getElementById('contentTitle').textContent = source ? source.name : sourceKey;
+      renderArticles();
+    }
+    
+    function searchFor(term) {
+      document.getElementById('searchBox').value = term;
+      handleSearch();
+    }
+    
+    function handleSearch() {
+      const term = document.getElementById('searchBox').value.toLowerCase();
+      currentFilter = { type: 'search', value: term };
+      document.getElementById('contentTitle').textContent = term ? `Search: "${term}"` : 'All Stories';
+      renderArticles();
+    }
+    
+    function getFilteredArticles() {
+      let filtered = [...articles];
+      
+      if (currentFilter.type === 'category' && currentFilter.value !== 'all') {
+        filtered = filtered.filter(a => a.category === currentFilter.value);
+      } else if (currentFilter.type === 'source') {
+        filtered = filtered.filter(a => a.sourceKey === currentFilter.value);
+      } else if (currentFilter.type === 'search' && currentFilter.value) {
+        filtered = filtered.filter(a => 
+          a.title.toLowerCase().includes(currentFilter.value) ||
+          (a.contentSnippet && a.contentSnippet.toLowerCase().includes(currentFilter.value))
+        );
+      }
+      
+      return filtered;
+    }
+    
+    function renderArticles() {
+      const filtered = getFilteredArticles();
+      
+      if (currentView === 'grid') {
+        renderGrid(filtered);
+      } else {
+        renderList(filtered);
+      }
+    }
+    
+    function renderGrid(articles) {
+      const container = document.getElementById('articleGrid');
+      
+      container.innerHTML = articles.map(article => `
+        <div class="article-card" onclick="openReader('${encodeURIComponent(article.link)}', '${encodeURIComponent(article.title)}', '${article.source}', '${article.icon}')">
+          <div class="article-header">
+            <span>${article.icon}</span>
+            <span class="article-source">${article.source}</span>
+            <span class="article-time">${formatTime(article.publishedAt)}</span>
+          </div>
+          <h3 class="article-title">${article.title}</h3>
+          <p class="article-snippet">${article.contentSnippet || ''}</p>
+          <div class="article-tags">
+            <span class="article-tag">${article.category}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+    
+    function renderList(articles) {
+      const container = document.getElementById('articleList');
+      
+      container.innerHTML = articles.map(article => `
+        <div class="list-row" onclick="openReader('${encodeURIComponent(article.link)}', '${encodeURIComponent(article.title)}', '${article.source}', '${article.icon}')">
+          <span class="list-icon">${article.icon}</span>
+          <span class="list-title">${article.title}</span>
+          <span class="list-source">${article.source}</span>
+          <span class="list-time">${formatTime(article.publishedAt)}</span>
+        </div>
+      `).join('');
+    }
+    
+    function setView(view) {
+      currentView = view;
+      
+      document.querySelectorAll('.view-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.textContent.toLowerCase() === view);
+      });
+      
+      document.getElementById('articleGrid').classList.toggle('active', view === 'grid');
+      document.getElementById('articleList').classList.toggle('active', view === 'list');
+      
+      renderArticles();
+    }
+    
+    function formatTime(dateStr) {
+      const date = new Date(dateStr);
+      const now = new Date();
+      const diff = now - date;
+      
+      if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
+      if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
+      return date.toLocaleDateString();
+    }
+    
+    async function openReader(encodedUrl, encodedTitle, source, icon) {
+      const url = decodeURIComponent(encodedUrl);
+      const title = decodeURIComponent(encodedTitle);
+      
+      document.getElementById('readerOverlay').classList.add('open');
+      document.getElementById('readerTitle').textContent = title;
+      document.getElementById('readerMeta').textContent = `${icon} ${source}`;
+      document.getElementById('readerContent').innerHTML = '<p class="loading"><span class="spinner"></span> Loading...</p>';
+      document.getElementById('originalLink').href = url;
+      document.getElementById('archiveLink').href = 'https://archive.today/newest/' + encodeURIComponent(url);
+      
+      document.body.style.overflow = 'hidden';
+      
+      try {
+        const response = await fetch('/api/article/read?url=' + encodeURIComponent(url));
+        const data = await response.json();
+        
+        if (data.success && data.content) {
+          const paragraphs = data.content.split(/\n\n|\.\s{2,}/)
+            .filter(p => p.trim().length > 50)
+            .map(p => '<p>' + p.trim() + '</p>')
+            .join('');
+          
+          document.getElementById('readerContent').innerHTML = paragraphs || 
+            '<p>Could not extract content. Try the links above.</p>';
+          
+          if (data.source === 'archive.today') {
+            document.getElementById('readerMeta').textContent += ' • Retrieved from Archive';
+          }
+        } else {
+          document.getElementById('readerContent').innerHTML = 
+            '<p>Could not load article. Try the links above.</p>';
+        }
+      } catch (error) {
+        document.getElementById('readerContent').innerHTML = 
+          '<p>Error: ' + error.message + '</p>';
+      }
+    }
+    
+    function closeReader(event) {
+      if (event && event.target !== document.getElementById('readerOverlay')) return;
+      document.getElementById('readerOverlay').classList.remove('open');
+      document.body.style.overflow = '';
+    }
+    
+    async function refreshFeeds() {
+      try {
+        await fetch('/api/refresh', { method: 'POST' });
+        location.reload();
+      } catch (error) {
+        alert('Refresh failed: ' + error.message);
+      }
+    }
+    
+    // Search on Enter
+    document.getElementById('searchBox').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') handleSearch();
+    });
+    
+    // Close reader on Escape
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeReader();
+    });
+    
+    // Initialize
+    init();
+  </script>
+</body>
+</html>

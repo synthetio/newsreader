@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>📰 News Reader - Mobile</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+      background: #000;
+      color: #fff;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    
+    /* Status Bar */
+    .status-bar {
+      height: env(safe-area-inset-top, 44px);
+      background: #000;
+    }
+    
+    /* Tab Bar */
+    .tab-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(20, 20, 20, 0.95);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      display: flex;
+      justify-content: space-around;
+      padding: 0.5rem 0;
+      padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px));
+      border-top: 1px solid rgba(255,255,255,0.1);
+      z-index: 100;
+    }
+    
+    .tab {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0.5rem;
+      color: #666;
+      font-size: 0.7rem;
+      background: none;
+      border: none;
+      cursor: pointer;
+    }
+    
+    .tab.active {
+      color: #ff3b30;
+    }
+    
+    .tab-icon {
+      font-size: 1.5rem;
+      margin-bottom: 0.2rem;
+    }
+    
+    /* Header */
+    header {
+      padding: 1rem;
+      padding-top: 0.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .header-title {
+      font-size: 2rem;
+      font-weight: 800;
+    }
+    
+    .header-btn {
+      background: rgba(255,255,255,0.1);
+      border: none;
+      color: #fff;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      font-size: 1.2rem;
+      cursor: pointer;
+    }
+    
+    /* Category Pills */
+    .categories {
+      display: flex;
+      gap: 0.5rem;
+      padding: 0 1rem;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      margin-bottom: 1rem;
+    }
+    
+    .categories::-webkit-scrollbar {
+      display: none;
+    }
+    
+    .category-pill {
+      background: rgba(255,255,255,0.1);
+      border: none;
+      color: #fff;
+      padding: 0.6rem 1.2rem;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .category-pill.active {
+      background: #ff3b30;
+    }
+    
+    /* Content Area */
+    main {
+      padding-bottom: 100px;
+    }
+    
+    /* Feed View */
+    .feed-view {
+      padding: 0 1rem;
+    }
+    
+    /* Card Stack */
+    .card-stack {
+      position: relative;
+      height: 70vh;
+      max-height: 600px;
+      perspective: 1000px;
+    }
+    
+    .news-card {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 100%;
+      background: linear-gradient(145deg, #1c1c1e, #2c2c2e);
+      border-radius: 24px;
+      overflow: hidden;
+      transition: transform 0.3s ease;
+      cursor: grab;
+    }
+    
+    .news-card:active {
+      cursor: grabbing;
+    }
+    
+    .news-card.swiping {
+      transition: none;
+    }
+    
+    .card-image {
+      height: 45%;
+      background: linear-gradient(135deg, #333, #222);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 5rem;
+    }
+    
+    .card-content {
+      padding: 1.5rem;
+      height: 55%;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .card-source {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+    
+    .source-icon {
+      width: 28px;
+      height: 28px;
+      background: #ff3b30;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+    }
+    
+    .source-name {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #888;
+    }
+    
+    .source-time {
+      font-size: 0.75rem;
+      color: #666;
+      margin-left: auto;
+    }
+    
+    .card-title {
+      font-size: 1.4rem;
+      font-weight: 700;
+      line-height: 1.3;
+      flex-grow: 1;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    
+    .card-snippet {
+      font-size: 0.95rem;
+      color: #888;
+      line-height: 1.5;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      margin-top: 0.75rem;
+    }
+    
+    .card-actions {
+      display: flex;
+      justify-content: space-around;
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .card-action {
+      background: rgba(255,255,255,0.1);
+      border: none;
+      color: #fff;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      font-size: 1.3rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .card-action:active {
+      transform: scale(0.9);
+    }
+    
+    .card-action.read {
+      background: #ff3b30;
+    }
+    
+    /* Swipe indicators */
+    .swipe-indicator {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 3rem;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    
+    .swipe-left { left: 1rem; }
+    .swipe-right { right: 1rem; }
+    
+    /* List View */
+    .list-view {
+      display: none;
+    }
+    
+    .list-view.active {
+      display: block;
+    }
+    
+    .list-item {
+      display: flex;
+      gap: 1rem;
+      padding: 1rem;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .list-thumb {
+      width: 100px;
+      height: 80px;
+      background: linear-gradient(135deg, #333, #222);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      flex-shrink: 0;
+    }
+    
+    .list-content {
+      flex-grow: 1;
+    }
+    
+    .list-source {
+      font-size: 0.75rem;
+      color: #ff3b30;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+    
+    .list-title {
+      font-size: 1rem;
+      font-weight: 600;
+      line-height: 1.3;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    
+    .list-time {
+      font-size: 0.75rem;
+      color: #666;
+      margin-top: 0.5rem;
+    }
+    
+    /* Reader Modal */
+    .reader-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: #000;
+      z-index: 200;
+      transform: translateY(100%);
+      transition: transform 0.3s ease;
+    }
+    
+    .reader-modal.open {
+      transform: translateY(0);
+    }
+    
+    .reader-handle {
+      height: 36px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    .reader-handle-bar {
+      width: 40px;
+      height: 4px;
+      background: #666;
+      border-radius: 2px;
+    }
+    
+    .reader-scroll {
+      height: calc(100vh - 36px);
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 0 1.5rem 2rem;
+    }
+    
+    .reader-title {
+      font-size: 1.8rem;
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 1rem;
+    }
+    
+    .reader-meta {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      color: #888;
+      font-size: 0.9rem;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .reader-body {
+      font-size: 1.1rem;
+      line-height: 1.8;
+      color: #ccc;
+    }
+    
+    .reader-body p {
+      margin-bottom: 1.5rem;
+    }
+    
+    .reader-links {
+      display: flex;
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+    
+    .reader-links a {
+      flex: 1;
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+      text-decoration: none;
+      padding: 1rem;
+      border-radius: 12px;
+      text-align: center;
+      font-weight: 600;
+    }
+    
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 3rem;
+      color: #666;
+    }
+    
+    .empty-icon {
+      font-size: 4rem;
+      margin-bottom: 1rem;
+    }
+    
+    /* Summary View */
+    .summary-view {
+      display: none;
+      padding: 1rem;
+    }
+    
+    .summary-view.active {
+      display: block;
+    }
+    
+    .summary-card {
+      background: linear-gradient(145deg, #1c1c1e, #2c2c2e);
+      border-radius: 16px;
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+    }
+    
+    .summary-card h3 {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    
+    .summary-item {
+      padding: 0.75rem 0;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      font-size: 0.95rem;
+    }
+    
+    .summary-item:last-child {
+      border-bottom: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="status-bar"></div>
+  
+  <header>
+    <h1 class="header-title">News</h1>
+    <a href="/" style="color: #ff3b30; text-decoration: none; font-size: 0.9rem;">← Switch</a>
+  </header>
+  
+  <div class="categories" id="categories">
+    <button class="category-pill active" data-category="all">For You</button>
+  </div>
+  
+  <main>
+    <!-- Card Stack View -->
+    <div class="feed-view" id="feedView">
+      <div class="card-stack" id="cardStack">
+        <div class="empty-state">
+          <div class="empty-icon">📰</div>
+          <p>Loading stories...</p>
+        </div>
+      </div>
+    </div>
+    
+    <!-- List View -->
+    <div class="list-view" id="listView"></div>
+    
+    <!-- Summary View -->
+    <div class="summary-view" id="summaryView"></div>
+  </main>
+  
+  <!-- Tab Bar -->
+  <div class="tab-bar">
+    <button class="tab active" onclick="switchTab('feed')">
+      <span class="tab-icon">📱</span>
+      <span>Cards</span>
+    </button>
+    <button class="tab" onclick="switchTab('list')">
+      <span class="tab-icon">📋</span>
+      <span>List</span>
+    </button>
+    <button class="tab" onclick="switchTab('summary')">
+      <span class="tab-icon">☀️</span>
+      <span>Summary</span>
+    </button>
+  </div>
+  
+  <!-- Reader Modal -->
+  <div class="reader-modal" id="readerModal">
+    <div class="reader-handle" onclick="closeReader()">
+      <div class="reader-handle-bar"></div>
+    </div>
+    <div class="reader-scroll">
+      <h1 class="reader-title" id="readerTitle"></h1>
+      <div class="reader-meta" id="readerMeta"></div>
+      <div class="reader-body" id="readerBody">
+        <p>Loading...</p>
+      </div>
+      <div class="reader-links">
+        <a href="#" id="originalLink" target="_blank">Original</a>
+        <a href="#" id="archiveLink" target="_blank">Archive</a>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    let articles = [];
+    let currentIndex = 0;
+    let currentCategory = 'all';
+    let currentTab = 'feed';
+    
+    async function loadArticles() {
+      try {
+        const response = await fetch('/api/articles?limit=100');
+        const data = await response.json();
+        
+        if (data.success) {
+          articles = data.articles;
+          buildCategories();
+          renderCurrentView();
+        }
+      } catch (error) {
+        console.error('Error loading articles:', error);
+      }
+    }
+    
+    function buildCategories() {
+      const cats = [...new Set(articles.map(a => a.category))];
+      const container = document.getElementById('categories');
+      
+      container.innerHTML = '<button class="category-pill active" data-category="all">For You</button>' +
+        cats.map(c => '<button class="category-pill" data-category="' + c + '">' + c + '</button>').join('');
+      
+      container.querySelectorAll('.category-pill').forEach(btn => {
+        btn.onclick = () => {
+          container.querySelectorAll('.category-pill').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          currentCategory = btn.dataset.category;
+          currentIndex = 0;
+          renderCurrentView();
+        };
+      });
+    }
+    
+    function getFilteredArticles() {
+      return currentCategory === 'all' 
+        ? articles 
+        : articles.filter(a => a.category === currentCategory);
+    }
+    
+    function renderCurrentView() {
+      if (currentTab === 'feed') renderCards();
+      else if (currentTab === 'list') renderList();
+      else if (currentTab === 'summary') renderSummary();
+    }
+    
+    function renderCards() {
+      const filtered = getFilteredArticles();
+      const container = document.getElementById('cardStack');
+      
+      if (filtered.length === 0) {
+        container.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><p>No stories</p></div>';
+        return;
+      }
+      
+      // Show current and next card
+      let html = '';
+      for (let i = Math.min(currentIndex + 1, filtered.length - 1); i >= currentIndex; i--) {
+        const article = filtered[i];
+        const offset = i - currentIndex;
+        const scale = 1 - (offset * 0.05);
+        const translateY = offset * 10;
+        
+        html += `
+          <div class="news-card" data-index="${i}" style="transform: scale(${scale}) translateY(${translateY}px); z-index: ${100 - offset};">
+            <div class="card-image">${article.icon}</div>
+            <div class="card-content">
+              <div class="card-source">
+                <div class="source-icon">${article.icon}</div>
+                <span class="source-name">${article.source}</span>
+                <span class="source-time">${formatTime(article.publishedAt)}</span>
+              </div>
+              <h2 class="card-title">${article.title}</h2>
+              <p class="card-snippet">${article.contentSnippet || ''}</p>
+              <div class="card-actions">
+                <button class="card-action" onclick="skipCard()">⏭️</button>
+                <button class="card-action read" onclick="readArticle('${encodeURIComponent(article.link)}', '${encodeURIComponent(article.title)}', '${article.source}', '${article.icon}')">📖</button>
+                <button class="card-action" onclick="window.open('${article.link}', '_blank')">🔗</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+      
+      container.innerHTML = html;
+      
+      // Enable swipe on top card
+      const topCard = container.querySelector('.news-card');
+      if (topCard) enableSwipe(topCard);
+    }
+    
+    function enableSwipe(card) {
+      let startX = 0;
+      let currentX = 0;
+      
+      card.addEventListener('touchstart', (e) => {
+        startX = e.touches[0].clientX;
+        card.classList.add('swiping');
+      });
+      
+      card.addEventListener('touchmove', (e) => {
+        currentX = e.touches[0].clientX - startX;
+        card.style.transform = `translateX(${currentX}px) rotate(${currentX * 0.05}deg)`;
+      });
+      
+      card.addEventListener('touchend', () => {
+        card.classList.remove('swiping');
+        if (Math.abs(currentX) > 100) {
+          skipCard();
+        } else {
+          card.style.transform = '';
+        }
+      });
+    }
+    
+    function skipCard() {
+      const filtered = getFilteredArticles();
+      if (currentIndex < filtered.length - 1) {
+        currentIndex++;
+        renderCards();
+      }
+    }
+    
+    function renderList() {
+      const filtered = getFilteredArticles();
+      const container = document.getElementById('listView');
+      
+      container.innerHTML = filtered.map(article => `
+        <div class="list-item" onclick="readArticle('${encodeURIComponent(article.link)}', '${encodeURIComponent(article.title)}', '${article.source}', '${article.icon}')">
+          <div class="list-thumb">${article.icon}</div>
+          <div class="list-content">
+            <div class="list-source">${article.source}</div>
+            <h3 class="list-title">${article.title}</h3>
+            <div class="list-time">${formatTime(article.publishedAt)}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+    
+    async function renderSummary() {
+      const container = document.getElementById('summaryView');
+      container.innerHTML = '<div class="empty-state">Loading summary...</div>';
+      
+      try {
+        const response = await fetch('/api/summary');
+        const data = await response.json();
+        
+        if (data.success) {
+          let html = '';
+          for (const [cat, info] of Object.entries(data.summary.categories)) {
+            html += `
+              <div class="summary-card">
+                <h3>${getCategoryIcon(cat)} ${cat}</h3>
+                ${info.topStories.map(s => `<div class="summary-item">${s.title}</div>`).join('')}
+              </div>
+            `;
+          }
+          container.innerHTML = html;
+        }
+      } catch (error) {
+        container.innerHTML = '<div class="empty-state">Could not load summary</div>';
+      }
+    }
+    
+    function getCategoryIcon(cat) {
+      const icons = {
+        'Entertainment': '🎬',
+        'Politics': '🏛️',
+        'Tech': '💻',
+        'General': '🌐'
+      };
+      return icons[cat] || '📰';
+    }
+    
+    function switchTab(tab) {
+      currentTab = tab;
+      
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      event.currentTarget.classList.add('active');
+      
+      document.getElementById('feedView').style.display = tab === 'feed' ? 'block' : 'none';
+      document.getElementById('listView').className = tab === 'list' ? 'list-view active' : 'list-view';
+      document.getElementById('summaryView').className = tab === 'summary' ? 'summary-view active' : 'summary-view';
+      
+      renderCurrentView();
+    }
+    
+    function formatTime(dateStr) {
+      const date = new Date(dateStr);
+      const now = new Date();
+      const diff = now - date;
+      
+      if (diff < 3600000) return Math.floor(diff / 60000) + 'm';
+      if (diff < 86400000) return Math.floor(diff / 3600000) + 'h';
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+    
+    async function readArticle(encodedUrl, encodedTitle, source, icon) {
+      const url = decodeURIComponent(encodedUrl);
+      const title = decodeURIComponent(encodedTitle);
+      
+      document.getElementById('readerModal').classList.add('open');
+      document.getElementById('readerTitle').textContent = title;
+      document.getElementById('readerMeta').innerHTML = icon + ' ' + source;
+      document.getElementById('readerBody').innerHTML = '<p>Loading article...</p>';
+      document.getElementById('originalLink').href = url;
+      document.getElementById('archiveLink').href = 'https://archive.today/newest/' + encodeURIComponent(url);
+      
+      try {
+        const response = await fetch('/api/article/read?url=' + encodeURIComponent(url));
+        const data = await response.json();
+        
+        if (data.success && data.content) {
+          const paragraphs = data.content.split(/\n\n|\.\s{2,}/)
+            .filter(p => p.trim().length > 50)
+            .map(p => '<p>' + p.trim() + '</p>')
+            .join('');
+          
+          document.getElementById('readerBody').innerHTML = paragraphs || 
+            '<p>Could not extract article. Try the links below.</p>';
+        } else {
+          document.getElementById('readerBody').innerHTML = 
+            '<p>Could not load article. Try the links below.</p>';
+        }
+      } catch (error) {
+        document.getElementById('readerBody').innerHTML = 
+          '<p>Error: ' + error.message + '</p>';
+      }
+    }
+    
+    function closeReader() {
+      document.getElementById('readerModal').classList.remove('open');
+    }
+    
+    // Swipe down to close reader
+    let readerStartY = 0;
+    document.getElementById('readerModal').addEventListener('touchstart', (e) => {
+      readerStartY = e.touches[0].clientY;
+    });
+    
+    document.getElementById('readerModal').addEventListener('touchmove', (e) => {
+      const diff = e.touches[0].clientY - readerStartY;
+      if (diff > 100) closeReader();
+    });
+    
+    // Initialize
+    loadArticles();
+  </script>
+</body>
+</html>
