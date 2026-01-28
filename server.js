@@ -10,6 +10,14 @@ const parser = new RSSParser({
   timeout: 10000,
   headers: {
     'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) NewsReader/1.0'
+  },
+  customFields: {
+    item: [
+      ['media:content', 'media:content', { keepArray: false }],
+      ['media:thumbnail', 'media:thumbnail', { keepArray: false }],
+      ['media:group', 'media:group', { keepArray: false }],
+      ['content:encoded', 'content:encoded'],
+    ]
   }
 });
 
@@ -128,6 +136,40 @@ let articleCache = {
   topics: {}
 };
 
+// User preferences storage (in-memory, persisted to file)
+const fs = require('fs');
+const PREFS_FILE = path.join(__dirname, 'user-prefs.json');
+
+let userPrefs = {
+  readArticles: [],
+  notInterestedTopics: [],
+  interestedTopics: [],
+  customFeeds: [],
+  textSize: 1.05,
+  realityMode: true,
+  hideReadMode: false
+};
+
+// Load prefs from file on startup
+try {
+  if (fs.existsSync(PREFS_FILE)) {
+    userPrefs = JSON.parse(fs.readFileSync(PREFS_FILE, 'utf8'));
+  }
+} catch (e) {
+  console.log('Could not load prefs file, using defaults');
+}
+
+function savePrefs() {
+  try {
+    fs.writeFileSync(PREFS_FILE, JSON.stringify(userPrefs, null, 2));
+  } catch (e) {
+    console.log('Could not save prefs:', e.message);
+  }
+}
+
+// Custom feeds added by user
+let customFeeds = {};
+
 // ============================================
 // HELPER FUNCTIONS
 // ============================================
@@ -231,12 +273,13 @@ async function fetchArticleContent(url) {
     
     const html = await response.text();
     const $ = cheerio.load(html);
+    const baseUrl = new URL(url);
     
     // Remove unwanted elements
-    $('script, style, nav, header, footer, aside, .ad, .advertisement, .social-share, .comments, .related-articles, [class*="ad-"], [class*="promo"], [id*="ad-"]').remove();
+    $('script, style, nav, header, footer, aside, .ad, .advertisement, .social-share, .comments, .related-articles, [class*="ad-"], [class*="promo"], [id*="ad-"], .sidebar, .newsletter, .subscribe').remove();
     
     // Try to find article content
-    let content = '';
+    let $article = null;
     const selectors = [
       'article',
       '[class*="article-body"]',
@@ -250,24 +293,112 @@ async function fetchArticleContent(url) {
     
     for (const selector of selectors) {
       const element = $(selector);
-      if (element.length) {
-        content = element.text().trim();
-        if (content.length > 200) break;
+      if (element.length && element.text().trim().length > 200) {
+        $article = element;
+        break;
       }
     }
     
-    // Fallback to body paragraphs
-    if (content.length < 200) {
-      content = $('p').map((_, el) => $(el).text()).get().join('\n\n');
+    // Convert to markdown-like format preserving structure
+    let content = '';
+    
+    const processElement = ($el) => {
+      let result = '';
+      
+      $el.children().each((_, child) => {
+        const $child = $(child);
+        const tagName = child.tagName?.toLowerCase();
+        
+        if (['script', 'style', 'nav', 'aside', 'footer'].includes(tagName)) {
+          return;
+        }
+        
+        if (tagName === 'img') {
+          let src = $child.attr('src') || $child.attr('data-src') || $child.attr('data-lazy-src');
+          if (src) {
+            // Make relative URLs absolute
+            if (src.startsWith('/')) {
+              src = baseUrl.origin + src;
+            } else if (!src.startsWith('http')) {
+              src = new URL(src, url).href;
+            }
+            const alt = $child.attr('alt') || '';
+            result += `\n\n![${alt}](${src})\n\n`;
+          }
+        } else if (tagName === 'figure') {
+          const $img = $child.find('img');
+          let src = $img.attr('src') || $img.attr('data-src') || $img.attr('data-lazy-src');
+          if (src) {
+            if (src.startsWith('/')) {
+              src = baseUrl.origin + src;
+            } else if (!src.startsWith('http')) {
+              src = new URL(src, url).href;
+            }
+            const alt = $img.attr('alt') || $child.find('figcaption').text().trim() || '';
+            result += `\n\n![${alt}](${src})\n\n`;
+          }
+        } else if (tagName === 'p') {
+          const text = $child.text().trim();
+          if (text.length > 0) {
+            result += '\n\n' + text + '\n';
+          }
+        } else if (tagName === 'h1') {
+          result += '\n\n# ' + $child.text().trim() + '\n';
+        } else if (tagName === 'h2') {
+          result += '\n\n## ' + $child.text().trim() + '\n';
+        } else if (tagName === 'h3') {
+          result += '\n\n### ' + $child.text().trim() + '\n';
+        } else if (tagName === 'blockquote') {
+          result += '\n\n> ' + $child.text().trim().replace(/\n/g, '\n> ') + '\n';
+        } else if (tagName === 'ul' || tagName === 'ol') {
+          $child.find('li').each((_, li) => {
+            result += '\n- ' + $(li).text().trim();
+          });
+          result += '\n';
+        } else if (['div', 'section', 'article'].includes(tagName)) {
+          result += processElement($child);
+        }
+      });
+      
+      return result;
+    };
+    
+    if ($article) {
+      content = processElement($article);
     }
     
-    // Clean up whitespace
-    content = content.replace(/\s+/g, ' ').trim();
+    // Fallback to body paragraphs with images
+    if (content.trim().length < 200) {
+      content = '';
+      $('p, h1, h2, h3, img, figure, blockquote').each((_, el) => {
+        const $el = $(el);
+        const tagName = el.tagName?.toLowerCase();
+        
+        if (tagName === 'img') {
+          let src = $el.attr('src') || $el.attr('data-src');
+          if (src) {
+            if (src.startsWith('/')) src = baseUrl.origin + src;
+            content += `\n\n![](${src})\n`;
+          }
+        } else if (tagName === 'p') {
+          const text = $el.text().trim();
+          if (text.length > 30) content += '\n\n' + text;
+        } else if (tagName?.startsWith('h')) {
+          content += '\n\n## ' + $el.text().trim();
+        } else if (tagName === 'blockquote') {
+          content += '\n\n> ' + $el.text().trim();
+        }
+      });
+    }
+    
+    // Clean up excessive whitespace
+    content = content.replace(/\n{4,}/g, '\n\n\n').trim();
     
     return {
       success: true,
-      content: content.substring(0, 10000),
-      source: 'direct'
+      content: content.substring(0, 15000),
+      source: 'direct',
+      format: 'markdown'
     };
   } catch (error) {
     console.log(`Direct fetch failed for ${url}: ${error.message}`);
@@ -352,11 +483,40 @@ async function fetchAllFeeds() {
       const parsed = await parser.parseURL(feed.url);
       
       parsed.items.forEach(item => {
+        // Extract thumbnail image from various RSS fields
+        let image = null;
+        if (item.enclosure?.url && /image/i.test(item.enclosure.type || '')) {
+          image = item.enclosure.url;
+        }
+        try {
+          if (!image && item['media:content']?.$?.url) {
+            image = item['media:content'].$.url;
+          }
+          if (!image && item['media:thumbnail']?.$?.url) {
+            image = item['media:thumbnail'].$.url;
+          }
+          if (!image && item['media:group']?.['media:content']?.[0]?.$?.url) {
+            image = item['media:group']['media:content'][0].$.url;
+          }
+        } catch(e) { /* media field parse error, skip */ }
+        // Try itunes image
+        if (!image && item.itunes?.image) {
+          image = item.itunes.image;
+        }
+        // Try to extract from content
+        if (!image) {
+          const imgMatch = (item['content:encoded'] || item.content || '').match(/<img[^>]+src=["']([^"']+)["']/i);
+          if (imgMatch) image = imgMatch[1];
+        }
+
         articles.push({
           id: Buffer.from(item.link || item.guid || Math.random().toString()).toString('base64').substring(0, 20),
           title: item.title,
           link: item.link,
+          image: image,
           contentSnippet: item.contentSnippet || item.content?.substring(0, 300) || '',
+          content: item['content:encoded'] || item.content || '',
+          enclosure: item.enclosure || null,
           publishedAt: item.pubDate || item.isoDate || new Date().toISOString(),
           source: feed.name,
           sourceKey: key,
@@ -538,6 +698,7 @@ app.get('/api/article/read', async (req, res) => {
       success: result.success,
       content: result.content,
       source: result.source,
+      format: result.format || 'text',
       archiveUrl: result.archiveUrl,
       originalUrl: url
     });
@@ -579,15 +740,171 @@ app.post('/api/refresh', async (req, res) => {
 
 // Get feed sources info
 app.get('/api/sources', (req, res) => {
-  const sources = Object.entries(RSS_FEEDS).map(([key, feed]) => ({
+  const allFeeds = { ...RSS_FEEDS, ...customFeeds };
+  const sources = Object.entries(allFeeds).map(([key, feed]) => ({
     key,
     name: feed.name,
     category: feed.category,
     icon: feed.icon,
-    url: feed.url
+    url: feed.url,
+    custom: !!customFeeds[key]
   }));
   
   res.json({ success: true, sources });
+});
+
+// ============================================
+// USER PREFERENCES API
+// ============================================
+
+// Get user preferences
+app.get('/api/prefs', (req, res) => {
+  res.json({ success: true, prefs: userPrefs });
+});
+
+// Update user preferences
+app.post('/api/prefs', (req, res) => {
+  const updates = req.body;
+  userPrefs = { ...userPrefs, ...updates };
+  savePrefs();
+  res.json({ success: true, prefs: userPrefs });
+});
+
+// Mark article as read
+app.post('/api/prefs/read', (req, res) => {
+  const { url, topics } = req.body;
+  if (url && !userPrefs.readArticles.includes(url)) {
+    userPrefs.readArticles.push(url);
+    // Keep last 500
+    if (userPrefs.readArticles.length > 500) {
+      userPrefs.readArticles = userPrefs.readArticles.slice(-500);
+    }
+  }
+  if (topics && Array.isArray(topics)) {
+    topics.forEach(t => {
+      if (!userPrefs.interestedTopics.includes(t)) {
+        userPrefs.interestedTopics.push(t);
+      }
+    });
+    userPrefs.interestedTopics = userPrefs.interestedTopics.slice(-200);
+  }
+  savePrefs();
+  res.json({ success: true });
+});
+
+// Mark article as not interested
+app.post('/api/prefs/not-interested', (req, res) => {
+  const { url, topics } = req.body;
+  if (url && !userPrefs.readArticles.includes(url)) {
+    userPrefs.readArticles.push(url);
+  }
+  if (topics && Array.isArray(topics)) {
+    topics.forEach(t => {
+      if (!userPrefs.notInterestedTopics.includes(t)) {
+        userPrefs.notInterestedTopics.push(t);
+      }
+    });
+    userPrefs.notInterestedTopics = userPrefs.notInterestedTopics.slice(-200);
+  }
+  savePrefs();
+  res.json({ success: true });
+});
+
+// Clear all preferences
+app.post('/api/prefs/clear', (req, res) => {
+  userPrefs = {
+    readArticles: [],
+    notInterestedTopics: [],
+    interestedTopics: [],
+    customFeeds: [],
+    textSize: 1.05,
+    realityMode: true,
+    hideReadMode: false
+  };
+  savePrefs();
+  res.json({ success: true, prefs: userPrefs });
+});
+
+// Get preference stats/summary
+app.get('/api/prefs/stats', (req, res) => {
+  // Count topic frequencies
+  const likedCounts = {};
+  userPrefs.interestedTopics.forEach(t => {
+    likedCounts[t] = (likedCounts[t] || 0) + 1;
+  });
+  
+  const dislikedCounts = {};
+  userPrefs.notInterestedTopics.forEach(t => {
+    dislikedCounts[t] = (dislikedCounts[t] || 0) + 1;
+  });
+  
+  const topLiked = Object.entries(likedCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 20)
+    .map(([word, count]) => ({ word, count }));
+  
+  const topDisliked = Object.entries(dislikedCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 20)
+    .map(([word, count]) => ({ word, count }));
+  
+  res.json({
+    success: true,
+    stats: {
+      articlesRead: userPrefs.readArticles.length,
+      totalLikedTopics: userPrefs.interestedTopics.length,
+      totalDislikedTopics: userPrefs.notInterestedTopics.length,
+      topLiked,
+      topDisliked
+    }
+  });
+});
+
+// Add custom feed
+app.post('/api/feeds/add', async (req, res) => {
+  const { url, name, category, icon } = req.body;
+  if (!url) {
+    return res.status(400).json({ success: false, error: 'URL required' });
+  }
+  
+  try {
+    // Test if feed is valid
+    const feed = await parser.parseURL(url);
+    const key = name?.toLowerCase().replace(/\s+/g, '-') || 'custom-' + Date.now();
+    
+    customFeeds[key] = {
+      url,
+      name: name || feed.title || 'Custom Feed',
+      category: category || 'Custom',
+      icon: icon || '📰'
+    };
+    
+    // Save to prefs
+    userPrefs.customFeeds = Object.values(customFeeds);
+    savePrefs();
+    
+    // Refresh feeds
+    await fetchAllFeeds();
+    
+    res.json({ 
+      success: true, 
+      feed: customFeeds[key],
+      articlesAdded: feed.items?.length || 0
+    });
+  } catch (error) {
+    res.status(400).json({ success: false, error: 'Could not parse feed: ' + error.message });
+  }
+});
+
+// Remove custom feed
+app.post('/api/feeds/remove', (req, res) => {
+  const { key } = req.body;
+  if (customFeeds[key]) {
+    delete customFeeds[key];
+    userPrefs.customFeeds = Object.values(customFeeds);
+    savePrefs();
+  }
+  res.json({ success: true });
 });
 
 // ============================================
@@ -612,6 +929,11 @@ app.get('/mobile', (req, res) => {
 // Dashboard Style
 app.get('/dashboard', (req, res) => {
   res.sendFile(path.join(__dirname, 'views', 'dashboard.html'));
+});
+
+// Settings/Preferences Dashboard
+app.get('/dash', (req, res) => {
+  res.sendFile(path.join(__dirname, 'views', 'dash.html'));
 });
 
 // ============================================
