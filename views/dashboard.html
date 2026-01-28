@@ -109,6 +109,12 @@
       color: var(--text-muted);
     }
     
+    .header-btn.active {
+      background: var(--accent-green);
+      border-color: var(--accent-green);
+      color: #000;
+    }
+    
     /* Layout */
     .layout {
       display: grid;
@@ -700,6 +706,9 @@
       <button class="header-btn reality-toggle" id="realityToggle" onclick="toggleReality()">
         REALITY
       </button>
+      <button class="header-btn" id="hideReadToggle" onclick="toggleHideRead()">
+        👁️ Hide Read
+      </button>
       <button class="header-btn" onclick="refreshFeeds()">
         🔄 Refresh
       </button>
@@ -803,6 +812,7 @@
     let currentFilter = { type: 'all', value: null };
     let currentView = 'grid';
     let realityMode = true;
+    let hideReadMode = false;
     let readArticles = JSON.parse(localStorage.getItem('readArticles') || '[]');
     let notInterestedArticles = JSON.parse(localStorage.getItem('notInterestedArticles') || '[]');
     
@@ -822,6 +832,15 @@
       if (savedReality === 'off') {
         realityMode = false;
         document.getElementById('realityToggle').classList.add('off');
+      }
+      
+      // Load hide read mode setting
+      const savedHideRead = localStorage.getItem('hideReadMode');
+      if (savedHideRead === 'on') {
+        hideReadMode = true;
+        const btn = document.getElementById('hideReadToggle');
+        btn.classList.add('active');
+        btn.textContent = '👁️ Show All';
       }
       await Promise.all([
         loadArticles(),
@@ -981,6 +1000,14 @@
         });
       }
       
+      // Hide read articles
+      if (hideReadMode) {
+        filtered = filtered.filter(a => !readArticles.includes(a.link));
+      }
+      
+      // Hide not interested articles
+      filtered = filtered.filter(a => !notInterestedArticles.includes(a.link));
+      
       // Apply category/source/search filters
       if (currentFilter.type === 'category' && currentFilter.value !== 'all') {
         filtered = filtered.filter(a => a.category === currentFilter.value);
@@ -1000,6 +1027,15 @@
       realityMode = !realityMode;
       document.getElementById('realityToggle').classList.toggle('off', !realityMode);
       localStorage.setItem('realityMode', realityMode ? 'on' : 'off');
+      renderArticles();
+    }
+    
+    function toggleHideRead() {
+      hideReadMode = !hideReadMode;
+      const btn = document.getElementById('hideReadToggle');
+      btn.classList.toggle('active', hideReadMode);
+      btn.textContent = hideReadMode ? '👁️ Show All' : '👁️ Hide Read';
+      localStorage.setItem('hideReadMode', hideReadMode ? 'on' : 'off');
       renderArticles();
     }
     
