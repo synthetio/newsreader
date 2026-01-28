@@ -96,6 +96,19 @@
       color: #000;
     }
     
+    .reality-toggle {
+      background: var(--accent-red);
+      border-color: var(--accent-red);
+      color: #fff;
+      font-weight: 600;
+    }
+    
+    .reality-toggle.off {
+      background: var(--bg);
+      border-color: var(--border);
+      color: var(--text-muted);
+    }
+    
     /* Layout */
     .layout {
       display: grid;
@@ -233,9 +246,10 @@
       background: var(--bg-secondary);
       border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 1rem;
+      overflow: hidden;
       cursor: pointer;
       transition: all 0.2s;
+      position: relative;
     }
     
     .article-card:hover {
@@ -243,11 +257,87 @@
       transform: translateY(-2px);
     }
     
+    .article-card.read {
+      opacity: 0.6;
+    }
+    
+    .article-card.not-interested {
+      display: none;
+    }
+    
+    .article-thumb {
+      width: 100%;
+      height: 140px;
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3rem;
+      overflow: hidden;
+    }
+    
+    .article-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    
+    .article-body {
+      padding: 1rem;
+    }
+    
     .article-header {
       display: flex;
       align-items: center;
       gap: 0.5rem;
       margin-bottom: 0.75rem;
+    }
+    
+    .article-actions {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid var(--border);
+    }
+    
+    .action-btn {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 0.5rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.3rem;
+      transition: all 0.2s;
+    }
+    
+    .action-btn:hover {
+      border-color: var(--text-muted);
+      color: var(--text);
+    }
+    
+    .action-btn.read-btn:hover {
+      background: rgba(63, 185, 80, 0.2);
+      border-color: var(--accent-green);
+      color: var(--accent-green);
+    }
+    
+    .action-btn.skip-btn:hover {
+      background: rgba(248, 81, 73, 0.2);
+      border-color: var(--accent-red);
+      color: var(--accent-red);
+    }
+    
+    .action-btn.active {
+      background: rgba(63, 185, 80, 0.2);
+      border-color: var(--accent-green);
+      color: var(--accent-green);
     }
     
     .article-source {
@@ -517,6 +607,9 @@
     <div class="logo">📰 News Dashboard</div>
     <div class="header-actions">
       <input type="text" class="search-box" placeholder="Search articles..." id="searchBox">
+      <button class="header-btn reality-toggle" id="realityToggle" onclick="toggleReality()">
+        REALITY
+      </button>
       <button class="header-btn" onclick="refreshFeeds()">
         🔄 Refresh
       </button>
@@ -615,8 +708,27 @@
     let sources = [];
     let currentFilter = { type: 'all', value: null };
     let currentView = 'grid';
+    let realityMode = true;
+    let readArticles = JSON.parse(localStorage.getItem('readArticles') || '[]');
+    let notInterestedArticles = JSON.parse(localStorage.getItem('notInterestedArticles') || '[]');
+    
+    const realityFilterKeywords = [
+      'trump', 'biden', 'desantis', 'republican', 'democrat', 'gop', 'liberal',
+      'conservative', 'maga', 'woke', 'congress', 'senate', 'election', 'ballot',
+      'campaign', 'poll', 'voter', 'impeach', 'indictment', 'lawsuit', 'court',
+      'supreme court', 'roe', 'abortion', 'gun control', 'nra', 'immigration',
+      'border', 'migrant', 'caravan', 'asylum', 'deportation', 'ukraine', 'russia',
+      'putin', 'zelensky', 'nato', 'china', 'taiwan', 'xi jinping', 'gaza', 'israel',
+      'hamas', 'netanyahu', 'palestine', 'iran', 'north korea', 'kim jong'
+    ];
     
     async function init() {
+      // Load reality mode setting
+      const savedReality = localStorage.getItem('realityMode');
+      if (savedReality === 'off') {
+        realityMode = false;
+        document.getElementById('realityToggle').classList.add('off');
+      }
       await Promise.all([
         loadArticles(),
         loadSources(),
@@ -767,6 +879,15 @@
     function getFilteredArticles() {
       let filtered = [...articles];
       
+      // Apply reality filter
+      if (realityMode) {
+        filtered = filtered.filter(a => {
+          const text = (a.title + ' ' + (a.contentSnippet || '')).toLowerCase();
+          return !realityFilterKeywords.some(kw => text.includes(kw));
+        });
+      }
+      
+      // Apply category/source/search filters
       if (currentFilter.type === 'category' && currentFilter.value !== 'all') {
         filtered = filtered.filter(a => a.category === currentFilter.value);
       } else if (currentFilter.type === 'source') {
@@ -779,6 +900,39 @@
       }
       
       return filtered;
+    }
+    
+    function toggleReality() {
+      realityMode = !realityMode;
+      document.getElementById('realityToggle').classList.toggle('off', !realityMode);
+      localStorage.setItem('realityMode', realityMode ? 'on' : 'off');
+      renderArticles();
+    }
+    
+    function markRead(encodedUrl, btn) {
+      const url = decodeURIComponent(encodedUrl);
+      if (!readArticles.includes(url)) {
+        readArticles.push(url);
+        localStorage.setItem('readArticles', JSON.stringify(readArticles.slice(-500)));
+      }
+      const card = btn.closest('.article-card');
+      if (card) card.classList.add('read');
+      btn.classList.add('active');
+      btn.innerHTML = '✓ Read';
+    }
+    
+    function markNotInterested(encodedUrl, btn) {
+      const url = decodeURIComponent(encodedUrl);
+      if (!notInterestedArticles.includes(url)) {
+        notInterestedArticles.push(url);
+        localStorage.setItem('notInterestedArticles', JSON.stringify(notInterestedArticles.slice(-500)));
+      }
+      const card = btn.closest('.article-card');
+      if (card) {
+        card.style.opacity = '0';
+        card.style.transform = 'scale(0.8)';
+        setTimeout(() => card.classList.add('not-interested'), 200);
+      }
     }
     
     function renderArticles() {
@@ -794,20 +948,43 @@
     function renderGrid(articles) {
       const container = document.getElementById('articleGrid');
       
-      container.innerHTML = articles.map(article => `
-        <div class="article-card" onclick="openReader('${encodeURIComponent(article.link)}', '${encodeURIComponent(article.title)}', '${article.source}', '${article.icon}')">
-          <div class="article-header">
-            <span>${article.icon}</span>
-            <span class="article-source">${article.source}</span>
-            <span class="article-time">${formatTime(article.publishedAt)}</span>
+      container.innerHTML = articles.map(article => {
+        const imgUrl = getArticleImage(article);
+        const articleId = btoa(article.link).slice(0, 20);
+        const isRead = readArticles.includes(article.link);
+        const isSkipped = notInterestedArticles.includes(article.link);
+        
+        return `
+        <div class="article-card ${isRead ? 'read' : ''} ${isSkipped ? 'not-interested' : ''}" data-id="${articleId}">
+          <div class="article-thumb" onclick="openReader('${encodeURIComponent(article.link)}', '${encodeURIComponent(article.title)}', '${article.source}', '${article.icon}')">
+            ${imgUrl ? `<img src="${imgUrl}" onerror="this.style.display='none';this.parentNode.innerHTML='${article.icon}'">` : article.icon}
           </div>
-          <h3 class="article-title">${article.title}</h3>
-          <p class="article-snippet">${article.contentSnippet || ''}</p>
-          <div class="article-tags">
-            <span class="article-tag">${article.category}</span>
+          <div class="article-body">
+            <div class="article-header">
+              <span>${article.icon}</span>
+              <span class="article-source">${article.source}</span>
+              <span class="article-time">${formatTime(article.publishedAt)}</span>
+            </div>
+            <h3 class="article-title" onclick="openReader('${encodeURIComponent(article.link)}', '${encodeURIComponent(article.title)}', '${article.source}', '${article.icon}')">${article.title}</h3>
+            <p class="article-snippet">${article.contentSnippet || ''}</p>
+            <div class="article-actions">
+              <button class="action-btn skip-btn" onclick="event.stopPropagation(); markNotInterested('${encodeURIComponent(article.link)}', this)" title="Not interested">
+                ✕ Skip
+              </button>
+              <button class="action-btn read-btn ${isRead ? 'active' : ''}" onclick="event.stopPropagation(); markRead('${encodeURIComponent(article.link)}', this)" title="Mark as read">
+                ✓ ${isRead ? 'Read' : 'Mark Read'}
+              </button>
+            </div>
           </div>
         </div>
-      `).join('');
+      `}).join('');
+    }
+    
+    function getArticleImage(article) {
+      if (article.enclosure?.url) return article.enclosure.url;
+      if (article.thumbnail) return article.thumbnail;
+      if (article['media:content']?.url) return article['media:content'].url;
+      return null;
     }
     
     function renderList(articles) {
