@@ -408,36 +408,131 @@
     }
     
     .list-row {
-      display: grid;
-      grid-template-columns: auto 1fr auto auto;
+      display: flex;
       gap: 1rem;
-      align-items: center;
-      padding: 0.75rem 1rem;
+      padding: 1rem;
       border-bottom: 1px solid var(--border);
-      cursor: pointer;
+      background: var(--bg-secondary);
+      margin-bottom: 0.5rem;
+      border-radius: 8px;
+      transition: all 0.2s;
     }
     
     .list-row:hover {
-      background: var(--bg-secondary);
+      border-color: var(--text-muted);
     }
     
-    .list-icon {
-      font-size: 1.25rem;
+    .list-row.read {
+      opacity: 0.5;
     }
     
-    .list-title {
-      font-size: 0.9rem;
-      font-weight: 500;
+    .list-row.not-interested {
+      display: none;
+    }
+    
+    .list-thumb {
+      width: 120px;
+      height: 90px;
+      background: var(--bg);
+      border-radius: 6px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      overflow: hidden;
+      cursor: pointer;
+    }
+    
+    .list-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    
+    .list-content {
+      flex: 1;
+      min-width: 0;
+      cursor: pointer;
+    }
+    
+    .list-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.4rem;
     }
     
     .list-source {
-      font-size: 0.8rem;
+      font-size: 0.75rem;
+      font-weight: 600;
       color: var(--accent);
     }
     
     .list-time {
-      font-size: 0.75rem;
+      font-size: 0.7rem;
       color: var(--text-muted);
+    }
+    
+    .list-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      line-height: 1.3;
+      margin-bottom: 0.4rem;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    
+    .list-snippet {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    
+    .list-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      flex-shrink: 0;
+    }
+    
+    .list-action-btn {
+      width: 40px;
+      height: 40px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+    
+    .list-action-btn:hover {
+      border-color: var(--text-muted);
+      color: var(--text);
+    }
+    
+    .list-action-btn.read-btn:hover,
+    .list-action-btn.read-btn.active {
+      background: rgba(63, 185, 80, 0.2);
+      border-color: var(--accent-green);
+      color: var(--accent-green);
+    }
+    
+    .list-action-btn.skip-btn:hover {
+      background: rgba(248, 81, 73, 0.2);
+      border-color: var(--accent-red);
+      color: var(--accent-red);
     }
     
     /* Word Cloud */
@@ -1121,14 +1216,55 @@
     function renderList(articles) {
       const container = document.getElementById('articleList');
       
-      container.innerHTML = articles.map(article => `
-        <div class="list-row" onclick="openReader('${encodeURIComponent(article.link)}', '${encodeURIComponent(article.title)}', '${article.source}', '${article.icon}')">
-          <span class="list-icon">${article.icon}</span>
-          <span class="list-title">${article.title}</span>
-          <span class="list-source">${article.source}</span>
-          <span class="list-time">${formatTime(article.publishedAt)}</span>
+      container.innerHTML = articles.map(article => {
+        const imgUrl = getArticleImage(article);
+        const isRead = readArticles.includes(article.link);
+        const isSkipped = notInterestedArticles.includes(article.link);
+        
+        return `
+        <div class="list-row ${isRead ? 'read' : ''} ${isSkipped ? 'not-interested' : ''}">
+          <div class="list-thumb" onclick="openReader('${encodeURIComponent(article.link)}', '${encodeURIComponent(article.title)}', '${article.source}', '${article.icon}', '${imgUrl ? encodeURIComponent(imgUrl) : ''}')">
+            ${imgUrl ? `<img src="${imgUrl}" onerror="this.style.display='none';this.parentNode.innerHTML='${article.icon}'">` : article.icon}
+          </div>
+          <div class="list-content" onclick="openReader('${encodeURIComponent(article.link)}', '${encodeURIComponent(article.title)}', '${article.source}', '${article.icon}', '${imgUrl ? encodeURIComponent(imgUrl) : ''}')">
+            <div class="list-header">
+              <span class="list-source">${article.icon} ${article.source}</span>
+              <span class="list-time">${formatTime(article.publishedAt)}</span>
+            </div>
+            <div class="list-title">${article.title}</div>
+            <div class="list-snippet">${article.contentSnippet || ''}</div>
+          </div>
+          <div class="list-actions">
+            <button class="list-action-btn skip-btn" onclick="event.stopPropagation(); markNotInterestedList('${encodeURIComponent(article.link)}', this)" title="Not interested">✕</button>
+            <button class="list-action-btn read-btn ${isRead ? 'active' : ''}" onclick="event.stopPropagation(); markReadList('${encodeURIComponent(article.link)}', this)" title="Mark as read">✓</button>
+          </div>
         </div>
-      `).join('');
+      `}).join('');
+    }
+    
+    function markReadList(encodedUrl, btn) {
+      const url = decodeURIComponent(encodedUrl);
+      if (!readArticles.includes(url)) {
+        readArticles.push(url);
+        localStorage.setItem('readArticles', JSON.stringify(readArticles.slice(-500)));
+      }
+      const row = btn.closest('.list-row');
+      if (row) row.classList.add('read');
+      btn.classList.add('active');
+    }
+    
+    function markNotInterestedList(encodedUrl, btn) {
+      const url = decodeURIComponent(encodedUrl);
+      if (!notInterestedArticles.includes(url)) {
+        notInterestedArticles.push(url);
+        localStorage.setItem('notInterestedArticles', JSON.stringify(notInterestedArticles.slice(-500)));
+      }
+      const row = btn.closest('.list-row');
+      if (row) {
+        row.style.opacity = '0';
+        row.style.transform = 'translateX(-20px)';
+        setTimeout(() => row.classList.add('not-interested'), 200);
+      }
     }
     
     function setView(view) {
