@@ -353,9 +353,9 @@
     }
     
     .article-title {
-      font-size: 1rem;
-      font-weight: 600;
-      line-height: 1.4;
+      font-size: 0.9rem;
+      font-weight: 700;
+      line-height: 1.35;
       margin-bottom: 0.5rem;
       display: -webkit-box;
       -webkit-line-clamp: 2;
@@ -364,11 +364,11 @@
     }
     
     .article-snippet {
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       color: var(--text-muted);
       line-height: 1.5;
       display: -webkit-box;
-      -webkit-line-clamp: 2;
+      -webkit-line-clamp: 4;
       -webkit-box-orient: vertical;
       overflow: hidden;
     }
@@ -981,6 +981,7 @@
     }
     
     function getArticleImage(article) {
+      if (article.image) return article.image;
       if (article.enclosure?.url) return article.enclosure.url;
       if (article.thumbnail) return article.thumbnail;
       if (article['media:content']?.url) return article['media:content'].url;
