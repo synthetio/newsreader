@@ -276,6 +276,36 @@
       padding: 0.3rem 0;
       border-bottom: 1px solid var(--border);
     }
+    
+    .summary-category li a {
+      color: var(--text);
+      text-decoration: none;
+    }
+    
+    .summary-category li a:hover {
+      color: var(--accent);
+    }
+    
+    /* Article with image */
+    .article {
+      display: flex;
+      gap: 1rem;
+      align-items: flex-start;
+    }
+    
+    .article-image {
+      width: 100px;
+      height: 70px;
+      border-radius: 8px;
+      object-fit: cover;
+      flex-shrink: 0;
+      background: var(--border);
+    }
+    
+    .article-content {
+      flex: 1;
+      min-width: 0;
+    }
   </style>
 </head>
 <body>
@@ -351,7 +381,8 @@
             html += '<h4>' + cat + ' (' + info.count + ')</h4>';
             html += '<ul>';
             info.topStories.forEach(story => {
-              html += '<li>' + story.title.substring(0, 80) + (story.title.length > 80 ? '...' : '') + '</li>';
+              const displayTitle = story.title.substring(0, 80) + (story.title.length > 80 ? '...' : '');
+              html += '<li><a href="#" onclick="openReader(\'' + encodeURIComponent(story.link) + '\', \'' + encodeURIComponent(story.title).replace(/'/g, "\\'") + '\', \'' + (story.source || 'News') + '\', \'' + (story.icon || '📰') + '\'); return false;">' + displayTitle + '</a></li>';
             });
             html += '</ul></div>';
           }
@@ -383,6 +414,14 @@
       });
     }
     
+    function getArticleImage(article) {
+      if (article.image) return article.image;
+      if (article.enclosure?.url) return article.enclosure.url;
+      if (article.thumbnail) return article.thumbnail;
+      if (article['media:content']?.url) return article['media:content'].url;
+      return null;
+    }
+    
     function renderArticles() {
       const filtered = currentCategory === 'all' 
         ? articles 
@@ -390,17 +429,22 @@
       
       const list = document.getElementById('articleList');
       
-      list.innerHTML = filtered.map(article => `
+      list.innerHTML = filtered.map(article => {
+        const imgUrl = getArticleImage(article);
+        return `
         <div class="article" onclick="openReader('${encodeURIComponent(article.link)}', '${encodeURIComponent(article.title)}', '${article.source}', '${article.icon}')">
-          <div class="article-meta">
-            <span class="article-source">${article.icon} ${article.source}</span>
-            <span>•</span>
-            <span>${formatTime(article.publishedAt)}</span>
+          ${imgUrl ? `<img class="article-image" src="${imgUrl}" onerror="this.style.display='none'" alt="">` : ''}
+          <div class="article-content">
+            <div class="article-meta">
+              <span class="article-source">${article.icon} ${article.source}</span>
+              <span>•</span>
+              <span>${formatTime(article.publishedAt)}</span>
+            </div>
+            <div class="article-title">${article.title}</div>
+            <div class="article-snippet">${article.contentSnippet || ''}</div>
           </div>
-          <div class="article-title">${article.title}</div>
-          <div class="article-snippet">${article.contentSnippet || ''}</div>
         </div>
-      `).join('');
+      `}).join('');
     }
     
     function formatTime(dateStr) {
