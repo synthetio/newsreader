@@ -511,11 +511,30 @@
     }
     
     .reader-modal {
-      background: var(--bg-secondary);
-      border: 1px solid var(--border);
       border-radius: 12px;
       max-width: 800px;
       width: 100%;
+      overflow: hidden;
+      background: #1a1a1a;
+      color: #e0e0e0;
+    }
+    
+    .reader-hero {
+      width: 100%;
+      height: 250px;
+      background: var(--bg);
+      display: none;
+      overflow: hidden;
+    }
+    
+    .reader-hero img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    
+    .reader-hero.visible {
+      display: block;
     }
     
     .reader-header {
@@ -523,15 +542,24 @@
       justify-content: space-between;
       align-items: center;
       padding: 1rem 1.5rem;
-      border-bottom: 1px solid var(--border);
+      border-bottom: 1px solid rgba(255,255,255,0.1);
     }
     
     .reader-close {
       background: none;
       border: none;
-      color: var(--text);
+      color: inherit;
       font-size: 1.5rem;
       cursor: pointer;
+      opacity: 0.8;
+    }
+    
+    .reader-source-badge {
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.25rem 0.75rem;
+      border-radius: 4px;
+      background: rgba(255,255,255,0.1);
     }
     
     .reader-actions {
@@ -540,21 +568,22 @@
     }
     
     .reader-actions a {
-      background: var(--bg);
-      color: var(--text);
+      color: #fff;
       text-decoration: none;
       padding: 0.5rem 1rem;
       border-radius: 6px;
       font-size: 0.85rem;
-      border: 1px solid var(--border);
+      background: var(--accent);
     }
     
     .reader-actions a:hover {
-      border-color: var(--accent);
+      opacity: 0.9;
     }
     
     .reader-body {
       padding: 2rem;
+      max-height: 60vh;
+      overflow-y: auto;
     }
     
     .reader-title {
@@ -565,10 +594,10 @@
     }
     
     .reader-meta {
-      color: var(--text-muted);
-      margin-bottom: 2rem;
+      opacity: 0.7;
+      margin-bottom: 1.5rem;
       padding-bottom: 1rem;
-      border-bottom: 1px solid var(--border);
+      border-bottom: 1px solid rgba(255,255,255,0.1);
     }
     
     .reader-content {
@@ -579,6 +608,67 @@
     .reader-content p {
       margin-bottom: 1.25rem;
     }
+    
+    .reader-content img {
+      max-width: 100%;
+      border-radius: 8px;
+      margin: 1rem 0;
+    }
+    
+    .reader-content blockquote {
+      padding-left: 1rem;
+      border-left: 3px solid var(--accent);
+      margin: 1rem 0;
+      font-style: italic;
+      opacity: 0.85;
+    }
+    
+    /* Source Themes */
+    .reader-modal.theme-hollywoodreporter { background: #1a1a1a; color: #e8e8e8; }
+    .reader-modal.theme-hollywoodreporter .reader-title { font-family: Georgia, serif; }
+    .reader-modal.theme-hollywoodreporter .reader-content { font-family: Georgia, serif; }
+    .reader-modal.theme-hollywoodreporter .reader-actions a { background: #c4a000; color: #000; }
+    
+    .reader-modal.theme-variety { background: #fff; color: #222; }
+    .reader-modal.theme-variety .reader-title { font-weight: 800; color: #000; }
+    .reader-modal.theme-variety .reader-content { color: #333; }
+    .reader-modal.theme-variety .reader-content blockquote { border-left-color: #e50914; }
+    .reader-modal.theme-variety .reader-actions a { background: #e50914; }
+    .reader-modal.theme-variety .reader-header { border-bottom-color: #ddd; }
+    .reader-modal.theme-variety .reader-meta { border-bottom-color: #ddd; }
+    
+    .reader-modal.theme-deadline { background: #fff; color: #1a1a1a; }
+    .reader-modal.theme-deadline .reader-title { color: #000; }
+    .reader-modal.theme-deadline .reader-content { font-family: Georgia, serif; }
+    .reader-modal.theme-deadline .reader-actions a { background: #ff6600; }
+    .reader-modal.theme-deadline .reader-header { border-bottom-color: #ddd; }
+    
+    .reader-modal.theme-techcrunch { background: #fff; color: #1a1a1a; }
+    .reader-modal.theme-techcrunch .reader-title { font-weight: 800; color: #000; }
+    .reader-modal.theme-techcrunch .reader-content a { color: #0a9e01; }
+    .reader-modal.theme-techcrunch .reader-actions a { background: #0a9e01; }
+    .reader-modal.theme-techcrunch .reader-header { border-bottom-color: #ddd; }
+    
+    .reader-modal.theme-theverge { background: #fff; color: #1a1a1a; }
+    .reader-modal.theme-theverge .reader-title { font-weight: 800; color: #000; }
+    .reader-modal.theme-theverge .reader-content a { color: #fa4b2a; }
+    .reader-modal.theme-theverge .reader-actions a { background: #fa4b2a; }
+    .reader-modal.theme-theverge .reader-header { border-bottom-color: #ddd; }
+    
+    .reader-modal.theme-bbc { background: #fff; color: #222; }
+    .reader-modal.theme-bbc .reader-title { color: #000; }
+    .reader-modal.theme-bbc .reader-actions a { background: #bb1919; }
+    .reader-modal.theme-bbc .reader-header { border-bottom-color: #ddd; }
+    
+    .reader-modal.theme-wired { background: #fff; color: #1a1a1a; }
+    .reader-modal.theme-wired .reader-title { color: #000; }
+    .reader-modal.theme-wired .reader-actions a { background: #000; }
+    .reader-modal.theme-wired .reader-header { border-bottom-color: #ddd; }
+    
+    .reader-modal.theme-arstechnica { background: #fff; color: #1a1a1a; }
+    .reader-modal.theme-arstechnica .reader-title { color: #000; }
+    .reader-modal.theme-arstechnica .reader-actions a { background: #ff4e00; }
+    .reader-modal.theme-arstechnica .reader-header { border-bottom-color: #ddd; }
     
     /* Loading */
     .loading {
@@ -685,12 +775,16 @@
   
   <!-- Reader Modal -->
   <div class="reader-overlay" id="readerOverlay" onclick="closeReader(event)">
-    <div class="reader-modal" onclick="event.stopPropagation()">
+    <div class="reader-modal" id="readerModal" onclick="event.stopPropagation()">
+      <div class="reader-hero" id="readerHero">
+        <img id="readerHeroImg" src="" alt="">
+      </div>
       <div class="reader-header">
         <button class="reader-close" onclick="closeReader()">✕</button>
+        <span class="reader-source-badge" id="readerSourceBadge"></span>
         <div class="reader-actions">
-          <a href="#" id="originalLink" target="_blank">Open Original</a>
-          <a href="#" id="archiveLink" target="_blank">View Archive</a>
+          <a href="#" id="originalLink" target="_blank">Original</a>
+          <a href="#" id="archiveLink" target="_blank">Archive</a>
         </div>
       </div>
       <div class="reader-body">
@@ -956,7 +1050,7 @@
         
         return `
         <div class="article-card ${isRead ? 'read' : ''} ${isSkipped ? 'not-interested' : ''}" data-id="${articleId}">
-          <div class="article-thumb" onclick="openReader('${encodeURIComponent(article.link)}', '${encodeURIComponent(article.title)}', '${article.source}', '${article.icon}')">
+          <div class="article-thumb" onclick="openReader('${encodeURIComponent(article.link)}', '${encodeURIComponent(article.title)}', '${article.source}', '${article.icon}', '${imgUrl ? encodeURIComponent(imgUrl) : ''}')">
             ${imgUrl ? `<img src="${imgUrl}" onerror="this.style.display='none';this.parentNode.innerHTML='${article.icon}'">` : article.icon}
           </div>
           <div class="article-body">
@@ -965,7 +1059,7 @@
               <span class="article-source">${article.source}</span>
               <span class="article-time">${formatTime(article.publishedAt)}</span>
             </div>
-            <h3 class="article-title" onclick="openReader('${encodeURIComponent(article.link)}', '${encodeURIComponent(article.title)}', '${article.source}', '${article.icon}')">${article.title}</h3>
+            <h3 class="article-title" onclick="openReader('${encodeURIComponent(article.link)}', '${encodeURIComponent(article.title)}', '${article.source}', '${article.icon}', '${imgUrl ? encodeURIComponent(imgUrl) : ''}')">${article.title}</h3>
             <p class="article-snippet">${article.contentSnippet || ''}</p>
             <div class="article-actions">
               <button class="action-btn skip-btn" onclick="event.stopPropagation(); markNotInterested('${encodeURIComponent(article.link)}', this)" title="Not interested">
@@ -1024,16 +1118,44 @@
       return date.toLocaleDateString();
     }
     
-    async function openReader(encodedUrl, encodedTitle, source, icon) {
+    const sourceThemes = {
+      'Hollywood Reporter': 'hollywoodreporter',
+      'Variety': 'variety',
+      'Deadline': 'deadline',
+      'TechCrunch': 'techcrunch',
+      'The Verge': 'theverge',
+      'BBC News': 'bbc',
+      'Wired': 'wired',
+      'Ars Technica': 'arstechnica'
+    };
+    
+    function getThemeClass(source) {
+      return sourceThemes[source] ? 'theme-' + sourceThemes[source] : '';
+    }
+    
+    async function openReader(encodedUrl, encodedTitle, source, icon, imageUrl) {
       const url = decodeURIComponent(encodedUrl);
       const title = decodeURIComponent(encodedTitle);
+      
+      const modal = document.getElementById('readerModal');
+      modal.className = 'reader-modal ' + getThemeClass(source);
       
       document.getElementById('readerOverlay').classList.add('open');
       document.getElementById('readerTitle').textContent = title;
       document.getElementById('readerMeta').textContent = `${icon} ${source}`;
+      document.getElementById('readerSourceBadge').textContent = source;
       document.getElementById('readerContent').innerHTML = '<p class="loading"><span class="spinner"></span> Loading...</p>';
       document.getElementById('originalLink').href = url;
       document.getElementById('archiveLink').href = 'https://archive.today/newest/' + encodeURIComponent(url);
+      
+      // Show hero image if available
+      const heroEl = document.getElementById('readerHero');
+      if (imageUrl) {
+        document.getElementById('readerHeroImg').src = decodeURIComponent(imageUrl);
+        heroEl.classList.add('visible');
+      } else {
+        heroEl.classList.remove('visible');
+      }
       
       document.body.style.overflow = 'hidden';
       
