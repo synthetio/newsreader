@@ -1349,6 +1349,22 @@
             }
           }
           
+          // Remove duplicate headline from content (if first line matches title)
+          const lines = formatted.split('\n');
+          const titleLower = title.toLowerCase().trim();
+          while (lines.length > 0) {
+            const firstLine = lines[0].replace(/^#+\s*/, '').trim().toLowerCase();
+            if (firstLine === titleLower || titleLower.includes(firstLine) || firstLine.includes(titleLower)) {
+              lines.shift();
+            } else {
+              break;
+            }
+          }
+          formatted = lines.join('\n');
+          
+          // Remove duplicate paragraphs
+          const seenParagraphs = new Set();
+          
           // Convert markdown to HTML
           formatted = formatted
             .replace(/^### (.*$)/gim, '<h3>$1</h3>')
@@ -1358,7 +1374,13 @@
             .replace(/!\[(.*?)\]\((.*?)\)/gim, '<img src="$2" alt="$1">')
             .replace(/\[(.*?)\]\((.*?)\)/gim, '<a href="$2" target="_blank">$1</a>')
             .split(/\n\n+/)
-            .filter(p => p.trim())
+            .filter(p => {
+              const text = p.trim().toLowerCase().replace(/<[^>]*>/g, '');
+              if (!text || text.length < 10) return false;
+              if (seenParagraphs.has(text)) return false;
+              seenParagraphs.add(text);
+              return true;
+            })
             .map(p => p.startsWith('<') ? p : '<p>' + p.replace(/\n/g, '<br>') + '</p>')
             .join('');
           
