@@ -4,8 +4,90 @@ const fetch = require('node-fetch');
 const cheerio = require('cheerio');
 const cors = require('cors');
 const path = require('path');
+const session = require('express-session');
+const passport = require('passport');
+const GoogleStrategy = require('passport-google-oauth20').Strategy;
 
 const app = express();
+
+// ============================================
+// GOOGLE OAUTH CONFIGURATION
+// ============================================
+const ALLOWED_DOMAINS = ['synthet.io', 'adopter.media'];
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+const SESSION_SECRET = process.env.SESSION_SECRET || 'newsreader-secret-' + Math.random().toString(36);
+const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
+
+// Session configuration
+app.use(session({
+  secret: SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+  }
+}));
+
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Passport serialization
+passport.serializeUser((user, done) => done(null, user));
+passport.deserializeUser((user, done) => done(null, user));
+
+// Google OAuth Strategy
+if (GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET) {
+  passport.use(new GoogleStrategy({
+    clientID: GOOGLE_CLIENT_ID,
+    clientSecret: GOOGLE_CLIENT_SECRET,
+    callbackURL: `${BASE_URL}/auth/google/callback`
+  }, (accessToken, refreshToken, profile, done) => {
+    const email = profile.emails?.[0]?.value || '';
+    const domain = email.split('@')[1];
+    
+    if (ALLOWED_DOMAINS.includes(domain)) {
+      return done(null, {
+        id: profile.id,
+        email: email,
+        name: profile.displayName,
+        picture: profile.photos?.[0]?.value
+      });
+    } else {
+      return done(null, false, { message: 'Email domain not allowed' });
+    }
+  }));
+}
+
+// Auth check middleware
+function requireAuth(req, res, next) {
+  // Skip auth if Google OAuth not configured (local dev)
+  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+    return next();
+  }
+  
+  if (req.isAuthenticated()) {
+    return next();
+  }
+  
+  // For API requests, return 401
+  if (req.path.startsWith('/api/')) {
+    return res.status(401).json({ success: false, error: 'Authentication required' });
+  }
+  
+  // For page requests, redirect to login
+  res.redirect('/login');
+}
+
+// ============================================
+// NOINDEX - Block search engines
+// ============================================
+app.use((req, res, next) => {
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+  next();
+});
+
 const parser = new RSSParser({
   timeout: 10000,
   headers: {
@@ -908,31 +990,145 @@ app.post('/api/feeds/remove', (req, res) => {
 });
 
 // ============================================
-// VIEW ROUTES (3 UIs)
+// AUTH ROUTES
+// ============================================
+
+// Login page
+app.get('/login', (req, res) => {
+  if (req.isAuthenticated()) {
+    return res.redirect('/');
+  }
+  
+  // If OAuth not configured, allow access
+  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+    return res.redirect('/');
+  }
+  
+  res.send(`
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta name="robots" content="noindex, nofollow">
+      <title>Login - News Reader</title>
+      <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+          background: #000;
+          color: #fff;
+          min-height: 100vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .login-box {
+          text-align: center;
+          padding: 3rem;
+          background: #1a1a1a;
+          border-radius: 20px;
+          max-width: 400px;
+        }
+        h1 { font-size: 3rem; margin-bottom: 0.5rem; }
+        h2 { font-size: 1.5rem; font-weight: 400; margin-bottom: 2rem; opacity: 0.8; }
+        .google-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.75rem;
+          background: #fff;
+          color: #333;
+          padding: 0.875rem 1.5rem;
+          border-radius: 8px;
+          font-size: 1rem;
+          font-weight: 500;
+          text-decoration: none;
+          transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .google-btn:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(255,255,255,0.2);
+        }
+        .google-btn img { width: 20px; height: 20px; }
+        .note {
+          margin-top: 1.5rem;
+          font-size: 0.8rem;
+          opacity: 0.6;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="login-box">
+        <h1>📰</h1>
+        <h2>News Reader</h2>
+        <a href="/auth/google" class="google-btn">
+          <img src="https://www.google.com/favicon.ico" alt="Google">
+          Sign in with Google
+        </a>
+        <p class="note">Requires @synthet.io or @adopter.media email</p>
+      </div>
+    </body>
+    </html>
+  `);
+});
+
+// Google OAuth initiation
+app.get('/auth/google', passport.authenticate('google', {
+  scope: ['profile', 'email']
+}));
+
+// Google OAuth callback
+app.get('/auth/google/callback',
+  passport.authenticate('google', {
+    failureRedirect: '/login?error=domain'
+  }),
+  (req, res) => {
+    res.redirect('/');
+  }
+);
+
+// Logout
+app.get('/logout', (req, res) => {
+  req.logout(() => {
+    res.redirect('/login');
+  });
+});
+
+// Get current user (for frontend)
+app.get('/api/me', (req, res) => {
+  if (req.isAuthenticated()) {
+    res.json({ success: true, user: req.user });
+  } else {
+    res.json({ success: false, user: null });
+  }
+});
+
+// ============================================
+// VIEW ROUTES (3 UIs) - Protected
 // ============================================
 
 // Landing page / Switcher
-app.get('/', (req, res) => {
+app.get('/', requireAuth, (req, res) => {
   res.sendFile(path.join(__dirname, 'views', 'index.html'));
 });
 
 // PWA Style
-app.get('/pwa', (req, res) => {
+app.get('/pwa', requireAuth, (req, res) => {
   res.sendFile(path.join(__dirname, 'views', 'pwa.html'));
 });
 
 // Mobile App Style
-app.get('/mobile', (req, res) => {
+app.get('/mobile', requireAuth, (req, res) => {
   res.sendFile(path.join(__dirname, 'views', 'mobile.html'));
 });
 
 // Dashboard Style
-app.get('/dashboard', (req, res) => {
+app.get('/dashboard', requireAuth, (req, res) => {
   res.sendFile(path.join(__dirname, 'views', 'dashboard.html'));
 });
 
 // Settings/Preferences Dashboard
-app.get('/dash', (req, res) => {
+app.get('/dash', requireAuth, (req, res) => {
   res.sendFile(path.join(__dirname, 'views', 'dash.html'));
 });
 
@@ -942,26 +1138,23 @@ app.get('/dash', (req, res) => {
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, async () => {
+  const authStatus = GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET 
+    ? '🔒 Google OAuth ENABLED (synthet.io, adopter.media)'
+    : '⚠️  Google OAuth DISABLED (set GOOGLE_CLIENT_ID & GOOGLE_CLIENT_SECRET)';
+    
   console.log(`
 ╔═══════════════════════════════════════════════════════════╗
 ║           📰 Personal News Reader Started! 📰              ║
 ╠═══════════════════════════════════════════════════════════╣
 ║                                                           ║
-║  Server running at: http://localhost:${PORT}                 ║
+║  Server: ${BASE_URL.padEnd(44)}║
+║  Auth:   ${authStatus.padEnd(44)}║
+║  Robots: noindex, nofollow                                ║
 ║                                                           ║
 ║  Available UIs:                                           ║
-║    • Switcher:  http://localhost:${PORT}/                    ║
-║    • PWA:       http://localhost:${PORT}/pwa                 ║
-║    • Mobile:    http://localhost:${PORT}/mobile              ║
-║    • Dashboard: http://localhost:${PORT}/dashboard           ║
-║                                                           ║
-║  API Endpoints:                                           ║
-║    • GET /api/articles    - All articles                  ║
-║    • GET /api/categories  - By category                   ║
-║    • GET /api/wordcloud   - Topic word cloud              ║
-║    • GET /api/summary     - Morning summary               ║
-║    • GET /api/article/read?url=... - Reader mode          ║
-║    • POST /api/refresh    - Force refresh feeds           ║
+║    • Mobile:    ${BASE_URL}/mobile                        
+║    • Dashboard: ${BASE_URL}/dash                          
+║    • PWA:       ${BASE_URL}/pwa                           
 ║                                                           ║
 ╚═══════════════════════════════════════════════════════════╝
   `);
