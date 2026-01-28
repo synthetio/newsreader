@@ -394,17 +394,21 @@
       color: var(--text-muted);
     }
     
-    /* List View */
+    /* Grid/List View Toggle */
+    .article-grid {
+      display: none;
+    }
+    
+    .article-grid.active {
+      display: grid;
+    }
+    
     .article-list {
       display: none;
     }
     
     .article-list.active {
       display: block;
-    }
-    
-    .article-grid.active {
-      display: grid;
     }
     
     .list-row {
