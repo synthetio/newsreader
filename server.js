@@ -19,13 +19,18 @@ const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const SESSION_SECRET = process.env.SESSION_SECRET || 'newsreader-secret-' + Math.random().toString(36);
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 
+// Trust Railway's proxy for secure cookies
+app.set('trust proxy', 1);
+
 // Session configuration
+const isProduction = BASE_URL.startsWith('https://');
 app.use(session({
   secret: SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: process.env.NODE_ENV === 'production',
+    secure: isProduction,
+    sameSite: isProduction ? 'lax' : 'strict',
     maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
   }
 }));
