@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>📰 News Reader - Mobile</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Source+Serif+4:wght@400;600;700&family=Inter:wght@400;500;600;700&family=Roboto:wght@400;500;700&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
   <style>
     * {
       margin: 0;
@@ -18,15 +21,14 @@
       color: #fff;
       min-height: 100vh;
       overflow-x: hidden;
+      touch-action: pan-y;
     }
     
-    /* Status Bar */
     .status-bar {
       height: env(safe-area-inset-top, 44px);
       background: #000;
     }
     
-    /* Tab Bar */
     .tab-bar {
       position: fixed;
       bottom: 0;
@@ -49,93 +51,105 @@
       align-items: center;
       padding: 0.5rem;
       color: #666;
-      font-size: 0.7rem;
+      font-size: 0.65rem;
       background: none;
       border: none;
       cursor: pointer;
     }
     
-    .tab.active {
-      color: #ff3b30;
-    }
-    
-    .tab-icon {
-      font-size: 1.5rem;
-      margin-bottom: 0.2rem;
-    }
+    .tab.active { color: #ff3b30; }
+    .tab-icon { font-size: 1.3rem; margin-bottom: 0.2rem; }
     
     /* Header */
     header {
-      padding: 1rem;
-      padding-top: 0.5rem;
+      padding: 0.75rem 1rem;
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
     
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    
     .header-title {
-      font-size: 2rem;
+      font-size: 1.75rem;
       font-weight: 800;
     }
     
-    .header-btn {
-      background: rgba(255,255,255,0.1);
+    .toggle-btn {
+      background: linear-gradient(135deg, #ff3b30, #ff6b5b);
       border: none;
       color: #fff;
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      font-size: 1.2rem;
+      padding: 0.35rem 0.7rem;
+      border-radius: 12px;
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.3px;
       cursor: pointer;
+      transition: all 0.3s;
     }
     
-    /* Category Pills */
+    .toggle-btn.off {
+      background: #333;
+      color: #666;
+    }
+    
+    .hide-read-btn {
+      background: #333;
+      color: #888;
+    }
+    
+    .hide-read-btn.active {
+      background: linear-gradient(135deg, #007aff, #5ac8fa);
+      color: #fff;
+    }
+    
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    /* Categories */
     .categories {
       display: flex;
-      gap: 0.5rem;
+      gap: 0.4rem;
       padding: 0 1rem;
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
       scrollbar-width: none;
-      margin-bottom: 1rem;
+      margin-bottom: 0.75rem;
     }
     
-    .categories::-webkit-scrollbar {
-      display: none;
-    }
+    .categories::-webkit-scrollbar { display: none; }
     
     .category-pill {
       background: rgba(255,255,255,0.1);
       border: none;
       color: #fff;
-      padding: 0.6rem 1.2rem;
-      border-radius: 20px;
-      font-size: 0.9rem;
+      padding: 0.5rem 1rem;
+      border-radius: 16px;
+      font-size: 0.8rem;
       white-space: nowrap;
       cursor: pointer;
-      transition: all 0.2s;
     }
     
-    .category-pill.active {
-      background: #ff3b30;
-    }
+    .category-pill.active { background: #ff3b30; }
     
-    /* Content Area */
-    main {
-      padding-bottom: 100px;
-    }
+    main { padding-bottom: 90px; }
     
-    /* Feed View */
-    .feed-view {
-      padding: 0 1rem;
-    }
+    .feed-view { padding: 0 1rem; }
     
     /* Card Stack */
     .card-stack {
       position: relative;
-      height: 70vh;
-      max-height: 600px;
+      height: 65vh;
+      max-height: 550px;
       perspective: 1000px;
+      touch-action: none;
     }
     
     .news-card {
@@ -145,68 +159,100 @@
       right: 0;
       height: 100%;
       background: linear-gradient(145deg, #1c1c1e, #2c2c2e);
-      border-radius: 24px;
-      overflow: hidden;
-      transition: transform 0.3s ease;
-      cursor: grab;
+      border-radius: 20px;
+      overflow: visible;
+      transition: transform 0.3s ease, opacity 0.3s ease;
+      touch-action: none;
+      will-change: transform;
+      user-select: none;
     }
     
-    .news-card:active {
-      cursor: grabbing;
+    .news-card.swiping { transition: none !important; }
+    .news-card.exiting { transition: transform 0.3s ease, opacity 0.3s ease; }
+    
+    .swipe-indicator {
+      position: absolute;
+      top: 40%;
+      transform: translateY(-50%);
+      font-size: 3rem;
+      font-weight: 700;
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      opacity: 0;
+      transition: opacity 0.15s ease-out;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
     }
     
-    .news-card.swiping {
-      transition: none;
+    .swipe-indicator.left {
+      left: 2rem;
+      background: #ff3b30;
+      color: #fff;
+    }
+    
+    .swipe-indicator.right {
+      right: 2rem;
+      background: #34c759;
+      color: #fff;
+    }
+    
+    .swipe-indicator.visible {
+      opacity: 1 !important;
     }
     
     .card-image {
-      height: 45%;
+      height: 40%;
       background: linear-gradient(135deg, #333, #222);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 5rem;
+      font-size: 4rem;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    
+    .card-image img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
     
     .card-content {
-      padding: 1.5rem;
-      height: 55%;
+      padding: 1.25rem;
+      height: 60%;
       display: flex;
       flex-direction: column;
+      pointer-events: none;
     }
     
     .card-source {
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      margin-bottom: 0.75rem;
+      margin-bottom: 0.5rem;
     }
     
     .source-icon {
-      width: 28px;
-      height: 28px;
+      width: 24px;
+      height: 24px;
       background: #ff3b30;
-      border-radius: 6px;
+      border-radius: 5px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 0.9rem;
+      font-size: 0.8rem;
     }
     
-    .source-name {
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: #888;
-    }
-    
-    .source-time {
-      font-size: 0.75rem;
-      color: #666;
-      margin-left: auto;
-    }
+    .source-name { font-size: 0.75rem; font-weight: 600; color: #888; }
+    .source-time { font-size: 0.7rem; color: #666; margin-left: auto; }
     
     .card-title {
-      font-size: 1.4rem;
+      font-size: 1.2rem;
       font-weight: 700;
       line-height: 1.3;
       flex-grow: 1;
@@ -217,100 +263,128 @@
     }
     
     .card-snippet {
-      font-size: 0.95rem;
+      font-size: 0.85rem;
       color: #888;
-      line-height: 1.5;
+      line-height: 1.4;
       display: -webkit-box;
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
       overflow: hidden;
-      margin-top: 0.75rem;
+      margin-top: 0.5rem;
     }
     
     .card-actions {
       display: flex;
       justify-content: space-around;
-      margin-top: 1rem;
-      padding-top: 1rem;
+      margin-top: 0.75rem;
+      padding-top: 0.75rem;
       border-top: 1px solid rgba(255,255,255,0.1);
+      pointer-events: auto;
     }
     
     .card-action {
       background: rgba(255,255,255,0.1);
       border: none;
       color: #fff;
-      width: 50px;
-      height: 50px;
+      width: 44px;
+      height: 44px;
       border-radius: 50%;
-      font-size: 1.3rem;
+      font-size: 1.1rem;
       cursor: pointer;
-      transition: all 0.2s;
     }
     
-    .card-action:active {
-      transform: scale(0.9);
-    }
-    
-    .card-action.read {
-      background: #ff3b30;
-    }
-    
-    /* Swipe indicators */
-    .swipe-indicator {
-      position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
-      font-size: 3rem;
-      opacity: 0;
-      transition: opacity 0.2s;
-    }
-    
-    .swipe-left { left: 1rem; }
-    .swipe-right { right: 1rem; }
+    .card-action:active { transform: scale(0.9); }
+    .card-action.read { background: #ff3b30; }
     
     /* List View */
-    .list-view {
-      display: none;
-    }
-    
-    .list-view.active {
-      display: block;
-    }
+    .list-view { display: none; padding: 0 0.5rem; }
+    .list-view.active { display: block; }
     
     .list-item {
       display: flex;
-      gap: 1rem;
-      padding: 1rem;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
+      gap: 0.75rem;
+      padding: 0.75rem 0.5rem;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .list-item.read { opacity: 0.5; }
+    .list-item.swiping { transition: none; }
+    
+    .list-item-bg {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      padding: 0 1.5rem;
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+    
+    .list-item-bg.left {
+      left: -100%;
+      background: #ff3b30;
+      justify-content: flex-end;
+    }
+    
+    .list-item-bg.right {
+      right: -100%;
+      background: #34c759;
+      justify-content: flex-start;
+    }
+    
+    .list-item-category {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      font-size: 1rem;
+      opacity: 0.7;
+    }
+    
+    .list-item-content {
+      display: flex;
+      gap: 0.75rem;
+      width: 100%;
+      background: #000;
+      position: relative;
+      z-index: 1;
     }
     
     .list-thumb {
-      width: 100px;
-      height: 80px;
+      width: 80px;
+      height: 65px;
       background: linear-gradient(135deg, #333, #222);
-      border-radius: 12px;
+      border-radius: 8px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 2rem;
+      font-size: 1.5rem;
       flex-shrink: 0;
+      overflow: hidden;
     }
     
-    .list-content {
-      flex-grow: 1;
+    .list-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
+    
+    .list-content { flex-grow: 1; min-width: 0; }
     
     .list-source {
-      font-size: 0.75rem;
+      font-size: 0.65rem;
       color: #ff3b30;
       font-weight: 600;
-      margin-bottom: 0.25rem;
+      margin-bottom: 0.15rem;
     }
     
     .list-title {
-      font-size: 1rem;
+      font-size: 0.85rem;
       font-weight: 600;
-      line-height: 1.3;
+      line-height: 1.25;
       display: -webkit-box;
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
@@ -318,9 +392,9 @@
     }
     
     .list-time {
-      font-size: 0.75rem;
+      font-size: 0.65rem;
       color: #666;
-      margin-top: 0.5rem;
+      margin-top: 0.25rem;
     }
     
     /* Reader Modal */
@@ -330,126 +404,415 @@
       left: 0;
       right: 0;
       bottom: 0;
-      background: #000;
       z-index: 200;
       transform: translateY(100%);
       transition: transform 0.3s ease;
+      overflow: hidden;
     }
     
-    .reader-modal.open {
-      transform: translateY(0);
-    }
+    .reader-modal.open { transform: translateY(0); }
     
-    .reader-handle {
-      height: 36px;
+    .reader-header {
+      height: 50px;
       display: flex;
-      justify-content: center;
+      justify-content: space-between;
       align-items: center;
+      padding: 0 0.75rem;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
     }
     
-    .reader-handle-bar {
-      width: 40px;
-      height: 4px;
-      background: #666;
-      border-radius: 2px;
+    .reader-close {
+      background: none;
+      border: none;
+      color: inherit;
+      font-size: 1.5rem;
+      cursor: pointer;
+      padding: 0.5rem;
+      opacity: 0.8;
+    }
+    
+    .reader-center {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .reader-source-badge {
+      font-size: 0.7rem;
+      font-weight: 600;
+      opacity: 0.8;
+    }
+    
+    .text-size-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+    
+    .text-size-btn {
+      background: rgba(255,255,255,0.15);
+      border: none;
+      color: inherit;
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      padding: 0.3rem 0.5rem;
+      border-radius: 4px;
+      opacity: 0.8;
+    }
+    
+    .text-size-btn:active {
+      opacity: 1;
+      background: rgba(255,255,255,0.25);
+    }
+    
+    .reader-mark-read {
+      background: #34c759;
+      border: none;
+      color: #fff;
+      font-size: 1.2rem;
+      cursor: pointer;
+      padding: 0.5rem 0.75rem;
+      border-radius: 8px;
     }
     
     .reader-scroll {
-      height: calc(100vh - 36px);
+      height: calc(100vh - 50px);
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
-      padding: 0 1.5rem 2rem;
+      padding: 0 1.25rem 2rem;
+    }
+    
+    .reader-hero-image {
+      width: calc(100% + 2.5rem);
+      margin: 0 -1.25rem 1.25rem;
+      max-height: 250px;
+      object-fit: cover;
     }
     
     .reader-title {
-      font-size: 1.8rem;
+      font-size: 1.6rem;
       font-weight: 800;
       line-height: 1.2;
-      margin-bottom: 1rem;
+      margin-bottom: 0.75rem;
     }
     
     .reader-meta {
       display: flex;
       align-items: center;
-      gap: 1rem;
-      color: #888;
-      font-size: 0.9rem;
-      margin-bottom: 1.5rem;
-      padding-bottom: 1.5rem;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
+      gap: 0.75rem;
+      font-size: 0.8rem;
+      margin-bottom: 1.25rem;
+      padding-bottom: 1.25rem;
+      opacity: 0.7;
     }
     
     .reader-body {
-      font-size: 1.1rem;
+      font-size: 1.05rem;
       line-height: 1.8;
-      color: #ccc;
     }
     
-    .reader-body p {
-      margin-bottom: 1.5rem;
+    .reader-body p { margin-bottom: 1.25rem; }
+    
+    .reader-body img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 8px;
+      margin: 1.25rem 0;
+    }
+    
+    .reader-body h1, .reader-body h2, .reader-body h3 {
+      margin: 1.5rem 0 0.75rem;
+      line-height: 1.3;
+    }
+    
+    .reader-body blockquote {
+      padding-left: 1rem;
+      margin: 1.25rem 0;
+      font-style: italic;
+      opacity: 0.85;
     }
     
     .reader-links {
       display: flex;
-      gap: 1rem;
-      margin-top: 2rem;
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+      padding-top: 1.5rem;
     }
     
     .reader-links a {
       flex: 1;
-      background: rgba(255,255,255,0.1);
-      color: #fff;
-      text-decoration: none;
-      padding: 1rem;
-      border-radius: 12px;
+      padding: 0.75rem;
+      border-radius: 10px;
       text-align: center;
       font-weight: 600;
+      font-size: 0.85rem;
+      text-decoration: none;
     }
     
-    /* Empty state */
-    .empty-state {
-      text-align: center;
-      padding: 3rem;
-      color: #666;
-    }
+    /* Publication Themes */
+    .reader-modal.theme-hollywoodreporter { background: #1a1a1a; color: #e8e8e8; }
+    .reader-modal.theme-hollywoodreporter .reader-title { font-family: 'Playfair Display', Georgia, serif; color: #fff; }
+    .reader-modal.theme-hollywoodreporter .reader-body { font-family: 'Source Serif 4', Georgia, serif; }
+    .reader-modal.theme-hollywoodreporter .reader-body blockquote { border-left: 3px solid #c4a000; }
+    .reader-modal.theme-hollywoodreporter .reader-links a { background: #c4a000; color: #000; }
     
-    .empty-icon {
-      font-size: 4rem;
-      margin-bottom: 1rem;
-    }
+    .reader-modal.theme-variety { background: #fff; color: #222; }
+    .reader-modal.theme-variety .reader-title { font-family: 'Inter', sans-serif; font-weight: 800; color: #000; }
+    .reader-modal.theme-variety .reader-body { font-family: 'Inter', sans-serif; color: #333; }
+    .reader-modal.theme-variety .reader-body blockquote { border-left: 4px solid #e50914; }
+    .reader-modal.theme-variety .reader-links a { background: #e50914; color: #fff; }
     
-    /* Summary View */
-    .summary-view {
-      display: none;
-      padding: 1rem;
-    }
+    .reader-modal.theme-deadline { background: #fff; color: #1a1a1a; }
+    .reader-modal.theme-deadline .reader-title { font-family: 'Inter', sans-serif; color: #000; }
+    .reader-modal.theme-deadline .reader-body { font-family: Georgia, serif; }
+    .reader-modal.theme-deadline .reader-links a { background: #ff6600; color: #fff; }
     
-    .summary-view.active {
-      display: block;
-    }
+    .reader-modal.theme-techcrunch { background: #fff; color: #1a1a1a; }
+    .reader-modal.theme-techcrunch .reader-title { font-family: 'Inter', sans-serif; font-weight: 800; color: #000; }
+    .reader-modal.theme-techcrunch .reader-body { font-family: 'Inter', sans-serif; }
+    .reader-modal.theme-techcrunch .reader-body a { color: #0a9e01; }
+    .reader-modal.theme-techcrunch .reader-links a { background: #0a9e01; color: #fff; }
+    
+    .reader-modal.theme-theverge { background: #fff; color: #1a1a1a; }
+    .reader-modal.theme-theverge .reader-title { font-family: 'Inter', sans-serif; font-weight: 800; color: #000; }
+    .reader-modal.theme-theverge .reader-body a { color: #fa4b2a; }
+    .reader-modal.theme-theverge .reader-links a { background: #fa4b2a; color: #fff; }
+    
+    .reader-modal.theme-bbc { background: #fff; color: #222; }
+    .reader-modal.theme-bbc .reader-title { font-family: 'Roboto', sans-serif; color: #000; }
+    .reader-modal.theme-bbc .reader-body { font-family: 'Roboto', sans-serif; }
+    .reader-modal.theme-bbc .reader-links a { background: #bb1919; color: #fff; }
+    
+    .reader-modal.theme-default { background: #1a1a1a; color: #e0e0e0; }
+    .reader-modal.theme-default .reader-title { color: #fff; }
+    .reader-modal.theme-default .reader-body { font-family: Georgia, serif; }
+    .reader-modal.theme-default .reader-links a { background: #ff3b30; color: #fff; }
+    
+    .empty-state { text-align: center; padding: 2rem; color: #666; }
+    .empty-icon { font-size: 3rem; margin-bottom: 0.75rem; }
+    
+    .summary-view { display: none; padding: 0.75rem; }
+    .summary-view.active { display: block; }
     
     .summary-card {
       background: linear-gradient(145deg, #1c1c1e, #2c2c2e);
-      border-radius: 16px;
-      padding: 1.5rem;
-      margin-bottom: 1rem;
+      border-radius: 12px;
+      padding: 1rem;
+      margin-bottom: 0.75rem;
     }
     
-    .summary-card h3 {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      margin-bottom: 1rem;
+    .summary-card h3 { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; font-size: 0.95rem; }
+    .summary-item { padding: 0.5rem 0; border-bottom: 1px solid rgba(255,255,255,0.1); font-size: 0.85rem; }
+    .summary-item:last-child { border-bottom: none; }
+    
+    /* ========== TABLET RESPONSIVE (768px+) ========== */
+    @media (min-width: 768px) {
+      body { padding: 0 1rem; }
+      
+      header {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 1rem 1.5rem;
+      }
+      
+      .header-title { font-size: 2.25rem; }
+      
+      .toggle-btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.75rem;
+      }
+      
+      .categories {
+        max-width: 900px;
+        margin: 0 auto 1rem;
+        padding: 0 1.5rem;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+      
+      .category-pill {
+        padding: 0.6rem 1.25rem;
+        font-size: 0.9rem;
+      }
+      
+      main {
+        max-width: 900px;
+        margin: 0 auto;
+      }
+      
+      .feed-view { padding: 0 1.5rem; }
+      
+      .card-stack {
+        height: 70vh;
+        max-height: 650px;
+      }
+      
+      .news-card { border-radius: 24px; }
+      
+      .card-image { height: 45%; }
+      
+      .card-content { padding: 1.75rem; }
+      
+      .card-title {
+        font-size: 1.5rem;
+        -webkit-line-clamp: 4;
+      }
+      
+      .card-snippet {
+        font-size: 1rem;
+        -webkit-line-clamp: 3;
+      }
+      
+      .card-action {
+        width: 54px;
+        height: 54px;
+        font-size: 1.3rem;
+      }
+      
+      /* List view - 2 column grid on tablets */
+      .list-view {
+        display: none;
+        padding: 0 1rem;
+      }
+      
+      .list-view.active {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+      }
+      
+      .list-item {
+        border-radius: 12px;
+        background: rgba(30, 30, 30, 0.8);
+        border: none;
+        padding: 0;
+        overflow: hidden;
+      }
+      
+      .list-item-content {
+        flex-direction: column;
+        padding: 0;
+      }
+      
+      .list-thumb {
+        width: 100%;
+        height: 140px;
+        border-radius: 0;
+      }
+      
+      .list-content {
+        padding: 1rem;
+      }
+      
+      .list-source { font-size: 0.75rem; }
+      .list-title { font-size: 1rem; -webkit-line-clamp: 3; }
+      .list-time { font-size: 0.75rem; }
+      
+      /* Summary grid on tablets */
+      .summary-view.active {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+        padding: 0 1rem;
+      }
+      
+      .summary-card {
+        padding: 1.25rem;
+      }
+      
+      .summary-card h3 { font-size: 1.1rem; }
+      .summary-item { font-size: 0.95rem; padding: 0.75rem 0; }
+      
+      /* Reader modal improvements for tablets */
+      .reader-modal {
+        left: 10%;
+        right: 10%;
+        border-radius: 16px 16px 0 0;
+        box-shadow: 0 -10px 40px rgba(0,0,0,0.5);
+      }
+      
+      .reader-scroll {
+        padding: 0 2rem 3rem;
+      }
+      
+      .reader-title {
+        font-size: 2rem;
+      }
+      
+      .reader-body {
+        font-size: 1.15rem;
+        max-width: 700px;
+        margin: 0 auto;
+      }
+      
+      .reader-hero-image {
+        width: calc(100% + 4rem);
+        margin: 0 -2rem 1.5rem;
+        max-height: 350px;
+        border-radius: 0 0 12px 12px;
+      }
+      
+      /* Tab bar - centered and limited width */
+      .tab-bar {
+        left: 50%;
+        transform: translateX(-50%);
+        width: 400px;
+        border-radius: 20px 20px 0 0;
+      }
+      
+      .tab {
+        font-size: 0.75rem;
+        padding: 0.75rem;
+      }
+      
+      .tab-icon { font-size: 1.5rem; }
     }
     
-    .summary-item {
-      padding: 0.75rem 0;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
-      font-size: 0.95rem;
+    /* ========== LARGE TABLET / SMALL DESKTOP (1024px+) ========== */
+    @media (min-width: 1024px) {
+      header, .categories, main {
+        max-width: 1100px;
+      }
+      
+      .card-stack {
+        max-height: 700px;
+        max-width: 600px;
+        margin: 0 auto;
+      }
+      
+      .list-view.active {
+        grid-template-columns: repeat(3, 1fr);
+      }
+      
+      .summary-view.active {
+        grid-template-columns: repeat(3, 1fr);
+      }
+      
+      .reader-modal {
+        left: 15%;
+        right: 15%;
+      }
+      
+      .reader-body {
+        max-width: 750px;
+      }
     }
     
-    .summary-item:last-child {
-      border-bottom: none;
+    /* ========== LANDSCAPE PHONE FIX ========== */
+    @media (max-height: 500px) and (orientation: landscape) {
+      .card-stack {
+        height: 75vh;
+        max-height: none;
+      }
+      
+      .card-image { height: 35%; }
+      .card-content { padding: 0.75rem; }
+      .card-title { font-size: 1rem; -webkit-line-clamp: 2; }
+      .card-snippet { display: none; }
+      .card-actions { margin-top: 0.5rem; padding-top: 0.5rem; }
+      
+      .reader-modal { left: 5%; right: 5%; }
     }
   </style>
 </head>
@@ -457,8 +820,15 @@
   <div class="status-bar"></div>
   
   <header>
-    <h1 class="header-title">News</h1>
-    <a href="/" style="color: #ff3b30; text-decoration: none; font-size: 0.9rem;">← Switch</a>
+    <div class="header-left">
+      <h1 class="header-title">News</h1>
+      <button class="toggle-btn" id="realityToggle" onclick="toggleReality()">REALITY</button>
+      <button class="toggle-btn hide-read-btn" id="hideReadToggle" onclick="toggleHideRead()">HIDE READ</button>
+    </div>
+    <div class="header-right">
+      <a href="/dash" style="color: #888; text-decoration: none; font-size: 1.2rem;">⚙️</a>
+      <a href="/" style="color: #ff3b30; text-decoration: none; font-size: 0.8rem;">← Switch</a>
+    </div>
   </header>
   
   <div class="categories" id="categories">
@@ -466,7 +836,6 @@
   </div>
   
   <main>
-    <!-- Card Stack View -->
     <div class="feed-view" id="feedView">
       <div class="card-stack" id="cardStack">
         <div class="empty-state">
@@ -476,14 +845,10 @@
       </div>
     </div>
     
-    <!-- List View -->
     <div class="list-view" id="listView"></div>
-    
-    <!-- Summary View -->
     <div class="summary-view" id="summaryView"></div>
   </main>
   
-  <!-- Tab Bar -->
   <div class="tab-bar">
     <button class="tab active" onclick="switchTab('feed')">
       <span class="tab-icon">📱</span>
@@ -499,17 +864,23 @@
     </button>
   </div>
   
-  <!-- Reader Modal -->
-  <div class="reader-modal" id="readerModal">
-    <div class="reader-handle" onclick="closeReader()">
-      <div class="reader-handle-bar"></div>
+  <div class="reader-modal theme-default" id="readerModal">
+    <div class="reader-header">
+      <button class="reader-close" onclick="closeReader()">✕</button>
+      <div class="reader-center">
+        <span class="reader-source-badge" id="readerSourceBadge"></span>
+        <div class="text-size-controls">
+          <button class="text-size-btn" onclick="changeTextSize(-1)">A-</button>
+          <button class="text-size-btn" onclick="changeTextSize(1)">A+</button>
+        </div>
+      </div>
+      <button class="reader-mark-read" onclick="markCurrentAsRead()">✓</button>
     </div>
-    <div class="reader-scroll">
+    <div class="reader-scroll" id="readerScroll">
+      <img class="reader-hero-image" id="readerHero" style="display: none;">
       <h1 class="reader-title" id="readerTitle"></h1>
       <div class="reader-meta" id="readerMeta"></div>
-      <div class="reader-body" id="readerBody">
-        <p>Loading...</p>
-      </div>
+      <div class="reader-body" id="readerBody"><p>Loading...</p></div>
       <div class="reader-links">
         <a href="#" id="originalLink" target="_blank">Original</a>
         <a href="#" id="archiveLink" target="_blank">Archive</a>
@@ -522,12 +893,122 @@
     let currentIndex = 0;
     let currentCategory = 'all';
     let currentTab = 'feed';
+    let realityMode = true;
+    let hideReadMode = false;
+    let currentArticleUrl = null;
+    
+    // Stored preferences
+    let readArticles = JSON.parse(localStorage.getItem('readArticles') || '[]');
+    let notInterestedTopics = JSON.parse(localStorage.getItem('notInterestedTopics') || '[]');
+    let interestedTopics = JSON.parse(localStorage.getItem('interestedTopics') || '[]');
+    
+    const realityFilterKeywords = [
+      'trump', 'biden', 'israel', 'gaza', 'palestine', 'immigration', 'immigrant',
+      'migrant', 'border', 'economy', 'recession', 'inflation', 'republican',
+      'democrat', 'gop', 'congress', 'senate', 'shooting', 'shooter', 'gun violence',
+      'mass shooting', 'politics', 'political', 'election', 'vote', 'voting',
+      'conservative', 'liberal', 'maga', 'woke', 'ukraine', 'russia', 'putin',
+      'war', 'military', 'tariff', 'tariffs', 'china trade', 'sanctions'
+    ];
+    
+    const sourceThemes = {
+      'Hollywood Reporter': 'hollywoodreporter',
+      'Variety': 'variety',
+      'Deadline': 'deadline',
+      'TechCrunch': 'techcrunch',
+      'The Verge': 'theverge',
+      'BBC News': 'bbc'
+    };
+    
+    function toggleReality() {
+      realityMode = !realityMode;
+      document.getElementById('realityToggle').classList.toggle('off', !realityMode);
+      currentIndex = 0;
+      renderCurrentView();
+      localStorage.setItem('realityMode', realityMode ? 'on' : 'off');
+    }
+    
+    function toggleHideRead() {
+      hideReadMode = !hideReadMode;
+      document.getElementById('hideReadToggle').classList.toggle('active', hideReadMode);
+      renderCurrentView();
+      localStorage.setItem('hideReadMode', hideReadMode ? 'on' : 'off');
+    }
+    
+    function shouldFilterArticle(article) {
+      if (realityMode) return false;
+      const text = (article.title + ' ' + (article.contentSnippet || '')).toLowerCase();
+      return realityFilterKeywords.some(kw => text.includes(kw));
+    }
+    
+    function isArticleRead(article) {
+      return readArticles.includes(article.link);
+    }
+    
+    function markAsRead(url) {
+      if (!readArticles.includes(url)) {
+        readArticles.push(url);
+        localStorage.setItem('readArticles', JSON.stringify(readArticles));
+        // Extract topics for "interested"
+        const article = articles.find(a => a.link === url);
+        if (article) {
+          const words = article.title.toLowerCase().split(/\s+/).filter(w => w.length > 4);
+          words.forEach(w => {
+            if (!interestedTopics.includes(w)) interestedTopics.push(w);
+          });
+          localStorage.setItem('interestedTopics', JSON.stringify(interestedTopics.slice(-100)));
+          
+          // Sync to server
+          fetch('/api/prefs/read', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url, topics: words })
+          }).catch(() => {});
+        }
+      }
+    }
+    
+    function markAsNotInterested(article) {
+      const words = article.title.toLowerCase().split(/\s+/).filter(w => w.length > 4);
+      words.forEach(w => {
+        if (!notInterestedTopics.includes(w)) notInterestedTopics.push(w);
+      });
+      localStorage.setItem('notInterestedTopics', JSON.stringify(notInterestedTopics.slice(-100)));
+      
+      // Sync to server
+      fetch('/api/prefs/not-interested', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: article.link, topics: words })
+      }).catch(() => {});
+      
+      markAsRead(article.link);
+    }
+    
+    function markCurrentAsRead() {
+      if (currentArticleUrl) {
+        markAsRead(currentArticleUrl);
+        closeReader();
+        renderCurrentView();
+      }
+    }
     
     async function loadArticles() {
+      const savedReality = localStorage.getItem('realityMode');
+      if (savedReality === 'off') {
+        realityMode = false;
+        document.getElementById('realityToggle').classList.add('off');
+      }
+      
+      const savedHideRead = localStorage.getItem('hideReadMode');
+      if (savedHideRead === 'on') {
+        hideReadMode = true;
+        document.getElementById('hideReadToggle').classList.add('active');
+      }
+      
       try {
         const response = await fetch('/api/articles?limit=100');
         const data = await response.json();
-        
         if (data.success) {
           articles = data.articles;
           buildCategories();
@@ -541,7 +1022,6 @@
     function buildCategories() {
       const cats = [...new Set(articles.map(a => a.category))];
       const container = document.getElementById('categories');
-      
       container.innerHTML = '<button class="category-pill active" data-category="all">For You</button>' +
         cats.map(c => '<button class="category-pill" data-category="' + c + '">' + c + '</button>').join('');
       
@@ -557,9 +1037,10 @@
     }
     
     function getFilteredArticles() {
-      return currentCategory === 'all' 
-        ? articles 
-        : articles.filter(a => a.category === currentCategory);
+      let result = currentCategory === 'all' ? articles : articles.filter(a => a.category === currentCategory);
+      result = result.filter(a => !shouldFilterArticle(a));
+      if (hideReadMode) result = result.filter(a => !isArticleRead(a));
+      return result;
     }
     
     function renderCurrentView() {
@@ -568,26 +1049,35 @@
       else if (currentTab === 'summary') renderSummary();
     }
     
+    function getArticleImage(article) {
+      if (article.enclosure?.url) return article.enclosure.url;
+      if (article.image) return article.image;
+      const match = (article.content || '').match(/<img[^>]+src=["']([^"']+)["']/i);
+      return match ? match[1] : null;
+    }
+    
     function renderCards() {
       const filtered = getFilteredArticles();
       const container = document.getElementById('cardStack');
       
-      if (filtered.length === 0) {
-        container.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><p>No stories</p></div>';
+      if (filtered.length === 0 || currentIndex >= filtered.length) {
+        container.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><p>No more stories</p></div>';
         return;
       }
       
-      // Show current and next card
       let html = '';
       for (let i = Math.min(currentIndex + 1, filtered.length - 1); i >= currentIndex; i--) {
         const article = filtered[i];
         const offset = i - currentIndex;
         const scale = 1 - (offset * 0.05);
-        const translateY = offset * 10;
+        const translateY = offset * 8;
+        const imgUrl = getArticleImage(article);
         
         html += `
           <div class="news-card" data-index="${i}" style="transform: scale(${scale}) translateY(${translateY}px); z-index: ${100 - offset};">
-            <div class="card-image">${article.icon}</div>
+            <div class="swipe-indicator left">✕</div>
+            <div class="swipe-indicator right">✓</div>
+            <div class="card-image">${imgUrl ? `<img src="${imgUrl}" onerror="this.style.display='none';this.parentNode.innerHTML='${article.icon}'">` : article.icon}</div>
             <div class="card-content">
               <div class="card-source">
                 <div class="source-icon">${article.icon}</div>
@@ -597,9 +1087,9 @@
               <h2 class="card-title">${article.title}</h2>
               <p class="card-snippet">${article.contentSnippet || ''}</p>
               <div class="card-actions">
-                <button class="card-action" onclick="skipCard()">⏭️</button>
-                <button class="card-action read" onclick="readArticle('${encodeURIComponent(article.link)}', '${encodeURIComponent(article.title)}', '${article.source}', '${article.icon}')">📖</button>
-                <button class="card-action" onclick="window.open('${article.link}', '_blank')">🔗</button>
+                <button class="card-action" onclick="event.stopPropagation(); swipeCard('left')">👎</button>
+                <button class="card-action read" onclick="event.stopPropagation(); readArticle('${encodeURIComponent(article.link)}', '${encodeURIComponent(article.title)}', '${article.source}', '${article.icon}')">📖</button>
+                <button class="card-action" onclick="event.stopPropagation(); swipeCard('right')">✓</button>
               </div>
             </div>
           </div>
@@ -607,167 +1097,284 @@
       }
       
       container.innerHTML = html;
-      
-      // Enable swipe on top card
       const topCard = container.querySelector('.news-card');
       if (topCard) enableSwipe(topCard);
     }
     
     function enableSwipe(card) {
-      let startX = 0;
-      let currentX = 0;
+      let startX = 0, startY = 0, currentX = 0, isDragging = false, isHorizontal = null;
+      const leftInd = card.querySelector('.swipe-indicator.left');
+      const rightInd = card.querySelector('.swipe-indicator.right');
       
-      card.addEventListener('touchstart', (e) => {
-        startX = e.touches[0].clientX;
+      const onStart = (clientX, clientY) => {
+        startX = clientX; startY = clientY; currentX = 0;
+        isDragging = true; isHorizontal = null;
         card.classList.add('swiping');
-      });
+      };
       
-      card.addEventListener('touchmove', (e) => {
-        currentX = e.touches[0].clientX - startX;
-        card.style.transform = `translateX(${currentX}px) rotate(${currentX * 0.05}deg)`;
-      });
+      const onMove = (clientX, clientY) => {
+        if (!isDragging) return;
+        const deltaX = clientX - startX, deltaY = clientY - startY;
+        if (isHorizontal === null && (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10)) {
+          isHorizontal = Math.abs(deltaX) > Math.abs(deltaY);
+        }
+        if (isHorizontal) {
+          currentX = deltaX;
+          card.style.transform = `translateX(${deltaX}px) rotate(${deltaX * 0.02}deg)`;
+          
+          // Show/hide indicators based on swipe direction
+          if (deltaX < -40) {
+            leftInd.classList.add('visible');
+            rightInd.classList.remove('visible');
+          } else if (deltaX > 40) {
+            rightInd.classList.add('visible');
+            leftInd.classList.remove('visible');
+          } else {
+            leftInd.classList.remove('visible');
+            rightInd.classList.remove('visible');
+          }
+        }
+      };
       
-      card.addEventListener('touchend', () => {
+      const onEnd = () => {
+        if (!isDragging) return;
+        isDragging = false;
         card.classList.remove('swiping');
-        if (Math.abs(currentX) > 100) {
-          skipCard();
+        leftInd.classList.remove('visible');
+        rightInd.classList.remove('visible');
+        
+        if (isHorizontal && Math.abs(currentX) > 80) {
+          // Animate off screen
+          card.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
+          card.style.transform = `translateX(${currentX > 0 ? 500 : -500}px) rotate(${currentX > 0 ? 20 : -20}deg)`;
+          card.style.opacity = '0';
+          setTimeout(() => swipeCard(currentX > 0 ? 'right' : 'left'), 200);
         } else {
           card.style.transform = '';
+          card.style.opacity = '';
         }
-      });
+        isHorizontal = null;
+      };
+      
+      card.addEventListener('touchstart', e => { if (!e.target.closest('.card-actions')) onStart(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
+      card.addEventListener('touchmove', e => { if (isDragging) { onMove(e.touches[0].clientX, e.touches[0].clientY); if (isHorizontal) e.preventDefault(); } }, { passive: false });
+      card.addEventListener('touchend', onEnd, { passive: true });
+      card.addEventListener('touchcancel', onEnd, { passive: true });
+      
+      // Also support mouse for testing
+      card.addEventListener('mousedown', e => { if (!e.target.closest('.card-actions')) { onStart(e.clientX, e.clientY); e.preventDefault(); } });
+      document.addEventListener('mousemove', e => { if (isDragging) onMove(e.clientX, e.clientY); });
+      document.addEventListener('mouseup', onEnd);
     }
     
-    function skipCard() {
+    function swipeCard(direction) {
       const filtered = getFilteredArticles();
-      if (currentIndex < filtered.length - 1) {
-        currentIndex++;
-        renderCards();
+      const article = filtered[currentIndex];
+      
+      if (direction === 'left') {
+        markAsNotInterested(article);
+      } else {
+        markAsRead(article.link);
       }
+      
+      currentIndex++;
+      renderCards();
     }
     
     function renderList() {
       const filtered = getFilteredArticles();
       const container = document.getElementById('listView');
       
-      container.innerHTML = filtered.map(article => `
-        <div class="list-item" onclick="readArticle('${encodeURIComponent(article.link)}', '${encodeURIComponent(article.title)}', '${article.source}', '${article.icon}')">
-          <div class="list-thumb">${article.icon}</div>
-          <div class="list-content">
-            <div class="list-source">${article.source}</div>
-            <h3 class="list-title">${article.title}</h3>
-            <div class="list-time">${formatTime(article.publishedAt)}</div>
+      if (filtered.length === 0) {
+        container.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><p>No stories</p></div>';
+        return;
+      }
+      
+      container.innerHTML = filtered.map((article, idx) => {
+        const imgUrl = getArticleImage(article);
+        const isRead = isArticleRead(article);
+        const catIcon = getCategoryIcon(article.category);
+        return `
+        <div class="list-item ${isRead ? 'read' : ''}" data-index="${idx}">
+          <div class="list-item-bg left">✕</div>
+          <div class="list-item-bg right">✓</div>
+          <div class="list-item-content" onclick="readArticle('${encodeURIComponent(article.link)}', '${encodeURIComponent(article.title)}', '${article.source}', '${article.icon}')">
+            <div class="list-thumb">${imgUrl ? `<img src="${imgUrl}" onerror="this.style.display='none';this.parentNode.innerHTML='${article.icon}'">` : article.icon}</div>
+            <div class="list-content">
+              <div class="list-source">${article.source}</div>
+              <h3 class="list-title">${article.title}</h3>
+              <div class="list-time">${formatTime(article.publishedAt)}</div>
+            </div>
+            <div class="list-item-category">${catIcon}</div>
           </div>
         </div>
-      `).join('');
+      `}).join('');
+      
+      // Enable swipe on list items
+      container.querySelectorAll('.list-item').forEach((item, idx) => {
+        enableListSwipe(item, filtered[idx]);
+      });
+    }
+    
+    function enableListSwipe(item, article) {
+      let startX = 0, currentX = 0, isDragging = false;
+      const content = item.querySelector('.list-item-content');
+      
+      content.addEventListener('touchstart', e => {
+        startX = e.touches[0].clientX;
+        isDragging = true;
+        item.classList.add('swiping');
+      }, { passive: true });
+      
+      content.addEventListener('touchmove', e => {
+        if (!isDragging) return;
+        currentX = e.touches[0].clientX - startX;
+        content.style.transform = `translateX(${currentX}px)`;
+        
+        item.querySelector('.list-item-bg.left').style.opacity = currentX < -30 ? 1 : 0;
+        item.querySelector('.list-item-bg.right').style.opacity = currentX > 30 ? 1 : 0;
+      }, { passive: true });
+      
+      content.addEventListener('touchend', () => {
+        isDragging = false;
+        item.classList.remove('swiping');
+        
+        if (Math.abs(currentX) > 80) {
+          if (currentX < 0) markAsNotInterested(article);
+          else markAsRead(article.link);
+          item.style.display = 'none';
+        } else {
+          content.style.transform = '';
+          item.querySelector('.list-item-bg.left').style.opacity = 0;
+          item.querySelector('.list-item-bg.right').style.opacity = 0;
+        }
+        currentX = 0;
+      }, { passive: true });
     }
     
     async function renderSummary() {
       const container = document.getElementById('summaryView');
-      container.innerHTML = '<div class="empty-state">Loading summary...</div>';
+      container.innerHTML = '<div class="empty-state">Loading...</div>';
       
       try {
         const response = await fetch('/api/summary');
         const data = await response.json();
-        
         if (data.success) {
           let html = '';
           for (const [cat, info] of Object.entries(data.summary.categories)) {
-            html += `
-              <div class="summary-card">
-                <h3>${getCategoryIcon(cat)} ${cat}</h3>
-                ${info.topStories.map(s => `<div class="summary-item">${s.title}</div>`).join('')}
-              </div>
-            `;
+            let stories = info.topStories;
+            if (!realityMode) stories = stories.filter(s => !realityFilterKeywords.some(kw => s.title.toLowerCase().includes(kw)));
+            if (stories.length === 0) continue;
+            html += `<div class="summary-card"><h3>${cat}</h3>${stories.map(s => `<div class="summary-item">${s.title}</div>`).join('')}</div>`;
           }
-          container.innerHTML = html;
+          container.innerHTML = html || '<div class="empty-state">No stories</div>';
         }
-      } catch (error) {
-        container.innerHTML = '<div class="empty-state">Could not load summary</div>';
+      } catch (e) {
+        container.innerHTML = '<div class="empty-state">Error loading</div>';
       }
-    }
-    
-    function getCategoryIcon(cat) {
-      const icons = {
-        'Entertainment': '🎬',
-        'Politics': '🏛️',
-        'Tech': '💻',
-        'General': '🌐'
-      };
-      return icons[cat] || '📰';
     }
     
     function switchTab(tab) {
       currentTab = tab;
-      
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
       event.currentTarget.classList.add('active');
-      
       document.getElementById('feedView').style.display = tab === 'feed' ? 'block' : 'none';
       document.getElementById('listView').className = tab === 'list' ? 'list-view active' : 'list-view';
       document.getElementById('summaryView').className = tab === 'summary' ? 'summary-view active' : 'summary-view';
-      
       renderCurrentView();
     }
     
     function formatTime(dateStr) {
-      const date = new Date(dateStr);
-      const now = new Date();
-      const diff = now - date;
-      
+      const diff = Date.now() - new Date(dateStr);
       if (diff < 3600000) return Math.floor(diff / 60000) + 'm';
       if (diff < 86400000) return Math.floor(diff / 3600000) + 'h';
-      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+    
+    function getCategoryIcon(category) {
+      const icons = {
+        'Entertainment': '🎬',
+        'Tech': '💻',
+        'Politics': '🏛️',
+        'General': '🌐',
+        'Science': '🔬',
+        'Sports': '⚽',
+        'Business': '💼',
+        'Health': '🏥'
+      };
+      return icons[category] || '📰';
+    }
+    
+    let readerTextSize = parseFloat(localStorage.getItem('readerTextSize') || '1.05');
+    
+    function changeTextSize(delta) {
+      readerTextSize = Math.max(0.8, Math.min(1.5, readerTextSize + delta * 0.1));
+      localStorage.setItem('readerTextSize', readerTextSize.toString());
+      document.getElementById('readerBody').style.fontSize = readerTextSize + 'rem';
+    }
+    
+    function getThemeClass(source) {
+      return sourceThemes[source] ? 'theme-' + sourceThemes[source] : 'theme-default';
     }
     
     async function readArticle(encodedUrl, encodedTitle, source, icon) {
       const url = decodeURIComponent(encodedUrl);
       const title = decodeURIComponent(encodedTitle);
+      currentArticleUrl = url;
       
-      document.getElementById('readerModal').classList.add('open');
+      const modal = document.getElementById('readerModal');
+      modal.className = 'reader-modal open ' + getThemeClass(source);
+      
       document.getElementById('readerTitle').textContent = title;
       document.getElementById('readerMeta').innerHTML = icon + ' ' + source;
-      document.getElementById('readerBody').innerHTML = '<p>Loading article...</p>';
+      document.getElementById('readerSourceBadge').textContent = source;
+      document.getElementById('readerBody').innerHTML = '<p>Loading...</p>';
+      document.getElementById('readerBody').style.fontSize = readerTextSize + 'rem';
       document.getElementById('originalLink').href = url;
       document.getElementById('archiveLink').href = 'https://archive.today/newest/' + encodeURIComponent(url);
+      document.getElementById('readerHero').style.display = 'none';
+      document.getElementById('readerScroll').scrollTop = 0;
       
       try {
         const response = await fetch('/api/article/read?url=' + encodeURIComponent(url));
         const data = await response.json();
         
         if (data.success && data.content) {
-          const paragraphs = data.content.split(/\n\n|\.\s{2,}/)
-            .filter(p => p.trim().length > 50)
-            .map(p => '<p>' + p.trim() + '</p>')
+          let formatted = data.content;
+          const heroMatch = formatted.match(/!\[([^\]]*)\]\(([^)]+)\)/);
+          if (heroMatch) {
+            const heroImg = document.getElementById('readerHero');
+            heroImg.src = heroMatch[2];
+            heroImg.style.display = 'block';
+            formatted = formatted.replace(heroMatch[0], '');
+          }
+          
+          formatted = formatted
+            .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+            .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+            .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+            .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
+            .replace(/!\[(.*?)\]\((.*?)\)/gim, '<img src="$2" alt="$1">')
+            .replace(/\[(.*?)\]\((.*?)\)/gim, '<a href="$2">$1</a>')
+            .split(/\n\n+/)
+            .filter(p => p.trim())
+            .map(p => p.startsWith('<') ? p : '<p>' + p.replace(/\n/g, '<br>') + '</p>')
             .join('');
           
-          document.getElementById('readerBody').innerHTML = paragraphs || 
-            '<p>Could not extract article. Try the links below.</p>';
+          document.getElementById('readerBody').innerHTML = formatted || '<p>Could not load article.</p>';
         } else {
-          document.getElementById('readerBody').innerHTML = 
-            '<p>Could not load article. Try the links below.</p>';
+          document.getElementById('readerBody').innerHTML = '<p>Could not load article.</p>';
         }
-      } catch (error) {
-        document.getElementById('readerBody').innerHTML = 
-          '<p>Error: ' + error.message + '</p>';
+      } catch (e) {
+        document.getElementById('readerBody').innerHTML = '<p>Error: ' + e.message + '</p>';
       }
     }
     
     function closeReader() {
       document.getElementById('readerModal').classList.remove('open');
+      currentArticleUrl = null;
     }
     
-    // Swipe down to close reader
-    let readerStartY = 0;
-    document.getElementById('readerModal').addEventListener('touchstart', (e) => {
-      readerStartY = e.touches[0].clientY;
-    });
-    
-    document.getElementById('readerModal').addEventListener('touchmove', (e) => {
-      const diff = e.touches[0].clientY - readerStartY;
-      if (diff > 100) closeReader();
-    });
-    
-    // Initialize
     loadArticles();
   </script>
 </body>
