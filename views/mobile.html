@@ -337,13 +337,7 @@
       justify-content: flex-start;
     }
     
-    .list-item-category {
-      position: absolute;
-      top: 0.5rem;
-      right: 0.5rem;
-      font-size: 1rem;
-      opacity: 0.7;
-    }
+    /* Removed .list-item-category - was overlapping titles */
     
     .list-item-content {
       display: flex;
@@ -1157,10 +1151,22 @@
         isHorizontal = null;
       };
       
-      card.addEventListener('touchstart', e => { if (!e.target.closest('.card-actions')) onStart(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
-      card.addEventListener('touchmove', e => { if (isDragging) { onMove(e.touches[0].clientX, e.touches[0].clientY); if (isHorizontal) e.preventDefault(); } }, { passive: false });
-      card.addEventListener('touchend', onEnd, { passive: true });
-      card.addEventListener('touchcancel', onEnd, { passive: true });
+      // Touch handlers - use capture to ensure we get all touch events
+      card.addEventListener('touchstart', e => { 
+        if (!e.target.closest('.card-actions')) {
+          onStart(e.touches[0].clientX, e.touches[0].clientY);
+        }
+      }, { passive: true, capture: true });
+      
+      card.addEventListener('touchmove', e => { 
+        if (isDragging) { 
+          onMove(e.touches[0].clientX, e.touches[0].clientY); 
+          if (isHorizontal) e.preventDefault(); 
+        }
+      }, { passive: false, capture: true });
+      
+      card.addEventListener('touchend', onEnd, { passive: true, capture: true });
+      card.addEventListener('touchcancel', onEnd, { passive: true, capture: true });
       
       // Also support mouse for testing
       card.addEventListener('mousedown', e => { if (!e.target.closest('.card-actions')) { onStart(e.clientX, e.clientY); e.preventDefault(); } });
@@ -1206,7 +1212,6 @@
               <h3 class="list-title">${article.title}</h3>
               <div class="list-time">${formatTime(article.publishedAt)}</div>
             </div>
-            <div class="list-item-category">${catIcon}</div>
           </div>
         </div>
       `}).join('');
