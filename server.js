@@ -212,6 +212,20 @@ const RSS_FEEDS = {
     name: 'BBC News',
     category: 'General',
     icon: '🇬🇧'
+  },
+  
+  // Local - Las Vegas
+  lvrj: {
+    url: 'https://www.reviewjournal.com/feed/',
+    name: 'Las Vegas Review-Journal',
+    category: 'Local',
+    icon: '🌵'
+  },
+  lvindependent: {
+    url: 'https://thelvind.com/feed/',
+    name: 'Las Vegas Independent',
+    category: 'Local',
+    icon: '🎰'
   }
 };
 
