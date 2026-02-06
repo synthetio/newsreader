@@ -153,7 +153,25 @@ const RSS_FEEDS = {
     category: 'Entertainment',
     icon: '⭐'
   },
-  
+  vulture: {
+    url: 'https://www.vulture.com/rss/',
+    name: 'Vulture',
+    category: 'Entertainment',
+    icon: '🦅'
+  },
+  people: {
+    url: 'https://people.com/rss/',
+    name: 'People',
+    category: 'Entertainment',
+    icon: '👥'
+  },
+  ew: {
+    url: 'https://feeds.ew.com/entertainmentweekly/latest',
+    name: 'Entertainment Weekly',
+    category: 'Entertainment',
+    icon: '📰'
+  },
+
   // Politics
   thehill: {
     url: 'https://thehill.com/feed/',
@@ -166,6 +184,12 @@ const RSS_FEEDS = {
     name: 'Politico',
     category: 'Politics',
     icon: '🗳️'
+  },
+  axios: {
+    url: 'https://www.axios.com/feeds/feed.rss',
+    name: 'Axios',
+    category: 'Politics',
+    icon: '📊'
   },
   
   // Tech
@@ -213,6 +237,41 @@ const RSS_FEEDS = {
     category: 'General',
     icon: '🇬🇧'
   },
+  nytimes: {
+    url: 'https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml',
+    name: 'New York Times',
+    category: 'General',
+    icon: '🗞️'
+  },
+  
+  // Business
+  wsj: {
+    url: 'https://feeds.a.dj.com/rss/WSJcomUSBusiness.xml',
+    name: 'Wall Street Journal',
+    category: 'Business',
+    icon: '💼'
+  },
+  marketwatch: {
+    url: 'https://feeds.marketwatch.com/marketwatch/topstories/',
+    name: 'MarketWatch',
+    category: 'Business',
+    icon: '📈'
+  },
+  cnbc: {
+    url: 'https://www.cnbc.com/id/100003114/device/rss/rss.html',
+    name: 'CNBC',
+    category: 'Business',
+    icon: '📺'
+  },
+  
+  // Gossip (hidden from ALL/For You)
+  crazydaysandnights: {
+    url: 'https://www.crazydaysandnights.net/feeds/posts/default',
+    name: 'Crazy Days and Nights',
+    category: 'Gossip',
+    icon: '🍵',
+    hidden: true
+  },
   
   // Local - Las Vegas
   lvrj: {
@@ -222,7 +281,7 @@ const RSS_FEEDS = {
     icon: '🌵'
   },
   lvindependent: {
-    url: 'https://thelvind.com/feed/',
+    url: 'https://thenevadaindependent.com/feed',
     name: 'Las Vegas Independent',
     category: 'Local',
     icon: '🎰'
@@ -306,7 +365,10 @@ function extractTopics(text) {
 function buildWordCloud(articles) {
   const wordCounts = {};
   
-  articles.forEach(article => {
+  // Filter out Gossip articles
+  const filteredArticles = articles.filter(a => a.category !== 'Gossip');
+  
+  filteredArticles.forEach(article => {
     const text = `${article.title} ${article.contentSnippet || ''}`;
     const words = extractTopics(text);
     
@@ -326,8 +388,8 @@ function buildWordCloud(articles) {
 function generateMorningSummary(articles) {
   const categories = {};
   
-  // Group by category
-  articles.forEach(article => {
+  // Group by category (excluding Gossip)
+  articles.filter(a => a.category !== 'Gossip').forEach(article => {
     if (!categories[article.category]) {
       categories[article.category] = [];
     }
@@ -337,7 +399,7 @@ function generateMorningSummary(articles) {
   // Take top 3 from each category
   const summary = {
     generated: new Date().toISOString(),
-    totalArticles: articles.length,
+    totalArticles: articles.filter(a => a.category !== 'Gossip').length,
     categories: {}
   };
   
@@ -677,6 +739,11 @@ app.get('/api/articles', async (req, res) => {
     }
     
     let articles = [...articleCache.articles];
+    
+    // Filter out hidden categories (Gossip) from "All" view
+    if (!req.query.category) {
+      articles = articles.filter(a => a.category !== 'Gossip');
+    }
     
     // Filter by category
     if (req.query.category) {
