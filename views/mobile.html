@@ -1178,23 +1178,49 @@
     
     function buildCategories() {
       const cats = [...new Set(articles.map(a => a.category))];
+      // Always include Gossip category even if filtered from main feed
+      if (!cats.includes('Gossip')) {
+        cats.push('Gossip');
+      }
       const container = document.getElementById('categories');
       container.innerHTML = '<button class="category-pill active" data-category="all">For You</button>' +
         cats.map(c => '<button class="category-pill" data-category="' + c + '">' + c + '</button>').join('');
       
       container.querySelectorAll('.category-pill').forEach(btn => {
-        btn.onclick = () => {
+        btn.onclick = async () => {
           container.querySelectorAll('.category-pill').forEach(b => b.classList.remove('active'));
           btn.classList.add('active');
           currentCategory = btn.dataset.category;
           currentIndex = 0;
+          
+          // Fetch Gossip articles if that category selected
+          if (currentCategory === 'Gossip' && gossipArticles.length === 0) {
+            await fetchGossipArticles();
+          }
+          
           renderCurrentView();
         };
       });
     }
     
+    async function fetchGossipArticles() {
+      try {
+        const response = await fetch('/api/articles?category=Gossip&limit=50');
+        const data = await response.json();
+        if (data.success) {
+          gossipArticles = data.articles;
+        }
+      } catch (error) {
+        console.error('Error fetching Gossip articles:', error);
+      }
+    }
+    
+    let gossipArticles = []; // Store Gossip articles separately
+    
     function getFilteredArticles() {
-      let result = currentCategory === 'all' ? articles : articles.filter(a => a.category === currentCategory);
+      // For Gossip category, use separately fetched articles
+      let result = currentCategory === 'Gossip' ? gossipArticles : 
+                   (currentCategory === 'all' ? articles : articles.filter(a => a.category === currentCategory));
       result = result.filter(a => !shouldFilterArticle(a));
       if (hideReadMode) result = result.filter(a => !isArticleRead(a));
       return result;
