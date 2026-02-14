@@ -217,6 +217,162 @@
       background: var(--pill-bg);
       color: var(--text-secondary);
     }
+
+    /* Hamburger menu */
+    .menu-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      z-index: 250;
+      display: none;
+      align-items: flex-start;
+      justify-content: flex-end;
+      padding: calc(env(safe-area-inset-top, 0px) + 10px) 10px 10px;
+    }
+
+    .menu-overlay.open {
+      display: flex;
+    }
+
+    .menu-panel {
+      width: min(92vw, 340px);
+      max-height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 20px);
+      overflow: auto;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: 0 10px 35px rgba(0,0,0,0.35);
+      padding: 0.75rem;
+    }
+
+    .menu-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.5rem;
+    }
+
+    .menu-title {
+      font-weight: 800;
+      letter-spacing: 0.2px;
+    }
+
+    .menu-close {
+      border: none;
+      background: var(--pill-bg);
+      color: var(--text-secondary);
+      border-radius: 10px;
+      padding: 0.35rem 0.55rem;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+
+    .menu-section {
+      margin-top: 0.75rem;
+    }
+
+    .menu-section-title {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      margin: 0.35rem 0 0.5rem;
+    }
+
+    .menu-item {
+      width: 100%;
+      border: none;
+      background: var(--pill-bg);
+      color: var(--text);
+      padding: 0.7rem 0.75rem;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      text-align: left;
+      margin-bottom: 0.5rem;
+      cursor: pointer;
+    }
+
+    .menu-item:active { transform: scale(0.99); }
+
+    .menu-search {
+      width: 100%;
+      background: var(--pill-bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 0.6rem 0.75rem;
+      margin-bottom: 0.6rem;
+      outline: none;
+      font-size: 0.85rem;
+    }
+
+    .menu-pubs {
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+    }
+
+    .menu-pub {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      width: 100%;
+      border: none;
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      padding: 0.6rem 0.7rem;
+      border-radius: 12px;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .menu-pub.active {
+      background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
+      color: #fff;
+    }
+
+    .menu-pub-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--pill-bg);
+      flex-shrink: 0;
+    }
+
+    .menu-pub-meta {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .menu-pub-name {
+      font-weight: 700;
+      font-size: 0.85rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .menu-pub-cat {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .menu-loading {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      padding: 0.25rem 0.2rem;
+    }
     
     /* Categories */
     .categories {
@@ -938,9 +1094,34 @@
       <button class="toolbar-pill" id="realityToggle" onclick="toggleReality()">REALITY</button>
       <button class="toolbar-pill off" id="hideReadToggle" onclick="toggleHideRead()">READ</button>
       <button class="toolbar-pill off" id="darkModeToggle" onclick="toggleDarkMode()">DARK</button>
-      <button class="toolbar-pill icon-btn" onclick="openSettings()">⚙️</button>
+      <button class="toolbar-pill icon-btn" onclick="toggleMenu()">☰</button>
     </div>
   </header>
+
+  <!-- Hamburger Menu -->
+  <div class="menu-overlay" id="menuOverlay" onclick="closeMenu(event)">
+    <div class="menu-panel" onclick="event.stopPropagation()">
+      <div class="menu-header">
+        <div class="menu-title">Menu</div>
+        <button class="menu-close" onclick="toggleMenu()">✕</button>
+      </div>
+
+      <div class="menu-section">
+        <div class="menu-section-title">Actions</div>
+        <button class="menu-item" onclick="refreshFeeds()">🔄 Refresh feeds</button>
+        <button class="menu-item" onclick="clearReadHistory()">🧹 Clear read history</button>
+        <button class="menu-item" onclick="goToDashboard()">📊 Dashboard</button>
+      </div>
+
+      <div class="menu-section">
+        <div class="menu-section-title">Browse by publication</div>
+        <input class="menu-search" id="pubSearch" placeholder="Search publications…" oninput="filterPublications()" />
+        <div class="menu-pubs" id="pubList">
+          <div class="menu-loading">Loading…</div>
+        </div>
+      </div>
+    </div>
+  </div>
   
   <div class="categories" id="categories">
     <button class="category-pill active" data-category="all">For You</button>
@@ -1058,25 +1239,151 @@
       localStorage.setItem('darkMode', darkMode ? 'on' : 'off');
     }
     
-    function openSettings() {
-      const choice = prompt(
-        'Settings:\\n' +
-        '1. Refresh Feeds\\n' +
-        '2. Clear Read History\\n' +
-        '3. Dashboard View\\n\\n' +
-        'Enter number (1-3):'
-      );
-      
-      if (choice === '1') {
-        fetch('/api/refresh', { method: 'POST' }).then(() => location.reload());
-      } else if (choice === '2') {
-        readArticles = [];
-        localStorage.setItem('readArticles', '[]');
-        renderCurrentView();
-        alert('Read history cleared');
-      } else if (choice === '3') {
-        window.location.href = '/dashboard';
+    // Hamburger menu + publication browsing
+    let menuOpen = false;
+    let allSources = [];
+    let currentSourceKey = null; // null = all publications
+
+    function toggleMenu() {
+      menuOpen = !menuOpen;
+      const overlay = document.getElementById('menuOverlay');
+      overlay.classList.toggle('open', menuOpen);
+      if (menuOpen) {
+        loadPublications();
+        setTimeout(() => document.getElementById('pubSearch')?.focus(), 50);
       }
+    }
+
+    function closeMenu(e) {
+      // if click landed on overlay (outside panel)
+      if (e && e.target && e.target.id === 'menuOverlay') {
+        menuOpen = false;
+        document.getElementById('menuOverlay').classList.remove('open');
+      }
+    }
+
+    async function refreshFeeds() {
+      try {
+        await fetch('/api/refresh', { method: 'POST' });
+      } catch (e) {}
+      // Reload current view after refresh
+      if (currentSourceKey) {
+        await selectPublication(currentSourceKey, { close: false, refresh: false });
+      } else {
+        await loadArticles();
+      }
+    }
+
+    function clearReadHistory() {
+      readArticles = [];
+      localStorage.setItem('readArticles', '[]');
+      renderCurrentView();
+      alert('Read history cleared');
+    }
+
+    function goToDashboard() {
+      window.location.href = '/dashboard';
+    }
+
+    async function loadPublications() {
+      const list = document.getElementById('pubList');
+      if (!list) return;
+      if (allSources.length) {
+        renderPublications(allSources);
+        return;
+      }
+
+      list.innerHTML = '<div class="menu-loading">Loading…</div>';
+      try {
+        const resp = await fetch('/api/sources');
+        const data = await resp.json();
+        if (data.success) {
+          allSources = (data.sources || []).sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+          renderPublications(allSources);
+        } else {
+          list.innerHTML = '<div class="menu-loading">Could not load publications.</div>';
+        }
+      } catch (e) {
+        list.innerHTML = '<div class="menu-loading">Could not load publications.</div>';
+      }
+    }
+
+    function renderPublications(sources) {
+      const list = document.getElementById('pubList');
+      if (!list) return;
+
+      const allBtn = `
+        <button class="menu-pub ${currentSourceKey ? '' : 'active'}" onclick="selectPublication(null)">
+          <div class="menu-pub-icon">📰</div>
+          <div class="menu-pub-meta">
+            <div class="menu-pub-name">All publications</div>
+            <div class="menu-pub-cat">Full feed</div>
+          </div>
+        </button>
+      `;
+
+      const items = sources.map(s => `
+        <button class="menu-pub ${currentSourceKey === s.key ? 'active' : ''}" onclick="selectPublication('${s.key.replace(/'/g, "\\'")}')">
+          <div class="menu-pub-icon">${s.icon || '📰'}</div>
+          <div class="menu-pub-meta">
+            <div class="menu-pub-name">${escapeHtml(s.name || s.key)}</div>
+            <div class="menu-pub-cat">${escapeHtml(s.category || '')}</div>
+          </div>
+        </button>
+      `).join('');
+
+      list.innerHTML = allBtn + items;
+    }
+
+    function filterPublications() {
+      const q = (document.getElementById('pubSearch')?.value || '').toLowerCase().trim();
+      if (!q) return renderPublications(allSources);
+      const filtered = allSources.filter(s =>
+        (s.name || '').toLowerCase().includes(q) ||
+        (s.category || '').toLowerCase().includes(q) ||
+        (s.key || '').toLowerCase().includes(q)
+      );
+      renderPublications(filtered);
+    }
+
+    async function selectPublication(sourceKey, opts = { close: true, refresh: true }) {
+      currentSourceKey = sourceKey;
+      localStorage.setItem('currentSourceKey', sourceKey || '');
+
+      // Requirement: "pull/refresh when selected" + grab 15 most recent.
+      if (opts.refresh) {
+        try { await fetch('/api/refresh', { method: 'POST' }); } catch (e) {}
+      }
+
+      if (!sourceKey) {
+        await loadArticles();
+      } else {
+        try {
+          const resp = await fetch(`/api/articles?source=${encodeURIComponent(sourceKey)}&limit=15`);
+          const data = await resp.json();
+          if (data.success) {
+            articles = data.articles || [];
+            currentCategory = 'all';
+            currentIndex = 0;
+            buildCategories();
+            renderCurrentView();
+          }
+        } catch (e) {
+          console.error('Error loading publication:', e);
+        }
+      }
+
+      renderPublications(allSources);
+      if (opts.close) toggleMenu();
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
     }
     
     function shouldFilterArticle(article) {
@@ -1164,7 +1471,14 @@
       }
       
       try {
-        const response = await fetch('/api/articles?limit=100');
+        const storedSource = localStorage.getItem('currentSourceKey');
+        if (storedSource && !currentSourceKey) currentSourceKey = storedSource;
+
+        const endpoint = currentSourceKey
+          ? `/api/articles?source=${encodeURIComponent(currentSourceKey)}&limit=15`
+          : '/api/articles?limit=100';
+
+        const response = await fetch(endpoint);
         const data = await response.json();
         if (data.success) {
           articles = data.articles;
