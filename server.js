@@ -740,8 +740,9 @@ app.get('/api/articles', async (req, res) => {
     
     let articles = [...articleCache.articles];
     
-    // Filter out hidden categories (Gossip) from "All" view
-    if (!req.query.category) {
+    // Filter out hidden categories (Gossip) ONLY from the true "All" view
+    // If the user explicitly filters by source or category, we should not hide it.
+    if (!req.query.category && !req.query.source) {
       articles = articles.filter(a => a.category !== 'Gossip');
     }
     

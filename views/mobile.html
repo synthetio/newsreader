@@ -1081,6 +1081,24 @@
       
       .reader-modal { left: 5%; right: 5%; }
     }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 84px;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.85);
+      color: #fff;
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-size: 14px;
+      z-index: 99999;
+      max-width: 90vw;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 180ms ease;
+    }
+    .toast.show { opacity: 1; }
   </style>
 </head>
 <body>
@@ -1156,6 +1174,8 @@
     </button>
   </div>
   
+  <div id="toast" class="toast"></div>
+
   <div class="reader-modal theme-default" id="readerModal">
     <div class="reader-header">
       <button class="reader-close" onclick="closeReader()">✕</button>
@@ -1367,6 +1387,11 @@
             currentIndex = 0;
             buildCategories();
             renderCurrentView();
+            if (!articles.length) {
+              showToast('No recent stories for that publication.');
+            }
+          } else {
+            showToast('Could not load that publication.');
           }
         } catch (e) {
           console.error('Error loading publication:', e);
@@ -1375,6 +1400,15 @@
 
       renderPublications(allSources);
       if (opts.close) toggleMenu();
+    }
+
+    function showToast(msg, ms = 1800) {
+      const el = document.getElementById('toast');
+      if (!el) return;
+      el.textContent = msg;
+      el.classList.add('show');
+      clearTimeout(el.__t);
+      el.__t = setTimeout(() => el.classList.remove('show'), ms);
     }
 
     function escapeHtml(str) {
