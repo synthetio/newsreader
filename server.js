@@ -910,15 +910,33 @@ app.post('/api/refresh', async (req, res) => {
 // Get feed sources info
 app.get('/api/sources', (req, res) => {
   const allFeeds = { ...RSS_FEEDS, ...customFeeds };
+
+  // Build counts + error map from cache (best-effort)
+  const countsByKey = {};
+  if (articleCache?.articles?.length) {
+    articleCache.articles.forEach(a => {
+      if (!a.sourceKey) return;
+      countsByKey[a.sourceKey] = (countsByKey[a.sourceKey] || 0) + 1;
+    });
+  }
+
+  const errorByName = {};
+  if (Array.isArray(articleCache?.errors)) {
+    articleCache.errors.forEach(e => { if (e?.feed) errorByName[e.feed] = e.error || 'error'; });
+  }
+
   const sources = Object.entries(allFeeds).map(([key, feed]) => ({
     key,
     name: feed.name,
     category: feed.category,
     icon: feed.icon,
     url: feed.url,
-    custom: !!customFeeds[key]
+    custom: !!customFeeds[key],
+    count: countsByKey[key] || 0,
+    error: errorByName[feed.name] || null,
+    lastFetch: articleCache?.lastFetch || null
   }));
-  
+
   res.json({ success: true, sources });
 });
 

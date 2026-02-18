@@ -1342,15 +1342,21 @@
         </button>
       `;
 
-      const items = sources.map(s => `
-        <button class="menu-pub ${currentSourceKey === s.key ? 'active' : ''}" onclick="selectPublication('${s.key.replace(/'/g, "\\'")}')">
+      const items = sources.map(s => {
+        const key = (s.key || '').replace(/'/g, "\\'");
+        const count = (typeof s.count === 'number') ? s.count : null;
+        const disabled = count === 0;
+        const subtitle = s.error ? `⚠ ${s.error}` : (count === null ? (s.category || '') : `${s.category || ''}${s.category ? ' • ' : ''}${count} story${count === 1 ? '' : 'ies'}`);
+        return `
+        <button class="menu-pub ${currentSourceKey === s.key ? 'active' : ''}" ${disabled ? 'disabled' : ''} onclick="${disabled ? "showToast('No recent stories for that publication.')" : `selectPublication('${key}')`} ">
           <div class="menu-pub-icon">${s.icon || '📰'}</div>
           <div class="menu-pub-meta">
             <div class="menu-pub-name">${escapeHtml(s.name || s.key)}</div>
-            <div class="menu-pub-cat">${escapeHtml(s.category || '')}</div>
+            <div class="menu-pub-cat">${escapeHtml(subtitle || '')}</div>
           </div>
         </button>
-      `).join('');
+      `;
+      }).join('');
 
       list.innerHTML = allBtn + items;
     }
